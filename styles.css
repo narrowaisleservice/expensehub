@@ -24,7 +24,7 @@ hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 #nav{display:flex;flex-direction:column;gap:2px;flex:1}
 #nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--side-ink);text-decoration:none;font-weight:500}
 #nav a:hover{background:rgba(255,255,255,.1);color:#fff}#nav a.on{background:var(--accent);color:#fff}#nav a.on .badge{background:#fff;color:var(--accent)}
-#nav .ic{width:20px;text-align:center}.badge{margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;font-style:normal}
+#nav .ic{width:20px;text-align:center}#nav .grp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--side-ink);opacity:.55;padding:16px 10px 4px}.badge{margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;font-style:normal}
 .who{padding:8px 10px;border-top:1px solid rgba(255,255,255,.16);word-break:break-all}
 .main{flex:1;min-width:0}
 .top{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:15}

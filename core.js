@@ -178,14 +178,20 @@ async function selectWorkspace(id) {
 async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace(App.ws.id); }
 
 /* ---------- navigation / router ---------- */
+/* [id, label, icon, who can see it, group heading]  — who: '' everyone, 'manager' approver/finance/admin, 'finance' finance/admin */
 const NAV = [
-  ['dashboard', 'Dashboard', '▦'], ['expenses', 'Expenses', '🧾'], ['reports', 'Reports', '📄'], ['approvals', 'Approvals', '✔', 'manager'],
-  ['trips', 'Travel', '✈'], ['bills', 'Bill pay', '💷'], ['invoices', 'Invoices', '🧮'], ['budgets', 'Budgets', '🎯'],
-  ['analytics', 'Analytics', '📊'], ['team', 'Team', '👥'], ['audit', 'Audit log', '🕑', 'manager'], ['settings', 'Settings', '⚙']
+  ['dashboard', 'Dashboard', '▦', '', ''], ['expenses', 'Expenses', '🧾', '', ''], ['reports', 'Reports', '📄', '', ''], ['approvals', 'Approvals', '✔', 'manager', ''], ['trips', 'Trips', '✈', '', ''],
+  ['bills', 'Bills to pay', '💷', 'finance', 'Finance'], ['invoices', 'Invoices', '🧮', 'finance', 'Finance'], ['budgets', 'Budgets', '🎯', 'finance', 'Finance'], ['analytics', 'Analytics', '📊', 'finance', 'Finance'],
+  ['team', 'Team', '👥', 'manager', 'Admin'], ['audit', 'Audit log', '🕑', 'manager', 'Admin'], ['settings', 'Settings', '⚙', '', 'Admin']
 ];
+const navAllowed = n => !n[3] || (n[3] === 'manager' && isManager()) || (n[3] === 'finance' && isFinance());
 function renderShell() {
-  $('#nav').innerHTML = NAV.filter(n => !n[3] || (n[3] === 'manager' && isManager())).map(n =>
-    `<a href="#/${n[0]}" data-nav="${n[0]}"><span class="ic">${n[2]}</span><span>${n[1]}</span><b class="badge" id="b-${n[0]}" hidden></b></a>`).join('');
+  let last = '';
+  const items = NAV.filter(navAllowed), groups = new Set(items.map(n => n[4]));
+  $('#nav').innerHTML = items.map(n => {
+    const head = n[4] !== last && n[4] && (groups.size > 1) ? `<div class="grp">${n[4]}</div>` : ''; last = n[4];
+    return head + `<a href="#/${n[0]}" data-nav="${n[0]}"><span class="ic">${n[2]}</span><span>${n[1]}</span><b class="badge" id="b-${n[0]}" hidden></b></a>`;
+  }).join('');
   $('#wsname').textContent = App.ws.name;
   $('#whoami').textContent = (App.me.display_name || App.user.email) + ' · ' + App.me.role;
   const sw = $('#wsswitch');
