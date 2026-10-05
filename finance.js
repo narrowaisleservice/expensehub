@@ -9,7 +9,7 @@ function vbars(rows) {
   const W = 560, H = 150, max = Math.max(1, ...rows.map(r => r.value)), bw = W / Math.max(1, rows.length);
   return `<svg viewBox="0 0 ${W} ${H + 26}" class="chart" role="img" aria-label="Trend chart">${rows.map((r, i) => {
     const h = r.value / max * H;
-    return `<rect x="${i * bw + bw * .2}" y="${H - h}" width="${bw * .6}" height="${Math.max(1, h)}" rx="4" fill="var(--accent)"><title>${esc(r.label)}: ${money(r.value)}</title></rect><text x="${i * bw + bw / 2}" y="${H + 17}" text-anchor="middle" font-size="11" fill="var(--mute)">${esc(r.label)}</text>`;
+    return `<rect x="${i * bw + bw * .2}" y="${H - h}" width="${bw * .6}" height="${Math.max(1, h)}" rx="4" fill="var(--chart)"><title>${esc(r.label)}: ${money(r.value)}</title></rect><text x="${i * bw + bw / 2}" y="${H + 17}" text-anchor="middle" font-size="11" fill="var(--mute)">${esc(r.label)}</text>`;
   }).join('')}</svg>`;
 }
 const monthLabel = d => new Date(d + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'short' });
@@ -168,7 +168,7 @@ ACTIONS.openInvoice = t => {
 };
 ACTIONS.ivEdit = () => invoiceForm(IV.cur);
 ACTIONS.ivPrint = () => window.print();
-ACTIONS.ivEmail = () => { const i = IV.cur; location.href = `mailto:${encodeURIComponent(i.client_email || '')}?subject=${encodeURIComponent('Invoice ' + i.number + ' from ' + App.ws.name)}&body=${encodeURIComponent(`Hello,\n\nPlease find invoice ${i.number} for ${money(i.total)}${i.due_date ? ', due ' + dfmt(i.due_date) : ''}.\n\nPrint/save the invoice as PDF from ExpenseHub and attach it before sending.\n\nThanks,\n${App.me.display_name || ''}`)}`; };
+ACTIONS.ivEmail = () => { const i = IV.cur; location.href = `mailto:${encodeURIComponent(i.client_email || '')}?subject=${encodeURIComponent('Invoice ' + i.number + ' from ' + App.ws.name)}&body=${encodeURIComponent(`Hello,\n\nPlease find invoice ${i.number} for ${money(i.total)}${i.due_date ? ', due ' + dfmt(i.due_date) : ''}.\n\nPrint/save the invoice as PDF from FlexiExpenseHub and attach it before sending.\n\nThanks,\n${App.me.display_name || ''}`)}`; };
 ACTIONS.ivSet = wrap(async t => { await q(sb.from('exp_invoices').update({ status: t.dataset.st }).eq('id', IV.cur.id)); closeModal(); toast('Updated'); rerender(); });
 ACTIONS.ivDelete = async () => { if (!await confirmBox('Delete this invoice?', 'Delete', true)) return; await q(sb.from('exp_invoices').delete().eq('id', IV.cur.id)); closeModal(); rerender(); };
 

@@ -2,5 +2,5 @@
 window.EXPENSEHUB_CONFIG = {
   url: 'https://hkwcdpqpduptjwroawrw.supabase.co',
   key: 'sb_publishable_ym0_ostk5WkdHGhGEGSkXw_d1sHadPY',
-  appName: 'ExpenseHub'
+  appName: 'FlexiExpenseHub'
 };

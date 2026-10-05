@@ -1,11 +1,11 @@
 {
-  "name": "ExpenseHub",
-  "short_name": "ExpenseHub",
+  "name": "FlexiExpenseHub",
+  "short_name": "Flexi Expenses",
   "description": "Expenses, receipts, mileage, approvals, bills and invoices.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1f1c",
-  "theme_color": "#0b1f1c",
+  "background_color": "#0a3350",
+  "theme_color": "#0a3350",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }
