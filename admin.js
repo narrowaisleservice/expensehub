@@ -85,7 +85,7 @@ ACTIONS.exportMine = wrap(async () => {
   const rows = await q(sb.from('exp_expenses').select('*').eq('workspace_id', App.ws.id).eq('user_id', App.user.id).order('expense_date'));
   download(`my-expenses-${today()}.csv`, toCSV([['Date', 'Type', 'Merchant', 'Amount', 'Currency', 'VAT', 'Supplier VAT no.', 'Notes', 'Receipt stored (UTC)', 'Receipt SHA-256'], ...rows.map(e => [e.expense_date, e.kind, e.merchant, e.amount, e.currency, e.vat_amount ?? '', e.supplier_vat_no || '', e.notes, e.receipt_uploaded_at || '', e.receipt_hash || ''])]));
 });
-ACTIONS.privacyInfo = () => modal(`<div class="row between"><h2>Privacy &amp; records notice</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+ACTIONS.privacyInfo = () => modal(`<div class="row between"><h2>Privacy &amp; records notice</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   <p><b>What is held:</b> your name, work email, expense details (merchant, date, amount, VAT, notes, journeys) and photos of receipts you upload.</p>
   <p><b>Why:</b> to reimburse you, keep the accounting records the company must keep by law, and support VAT and tax returns.</p>
   <p><b>Receipt reading:</b> ${App.ws.ai_receipts === false ? 'receipts are read on your device only.' : 'when you scan a receipt, the photo is sent securely to Anthropic (the maker of Claude) to read the merchant, date, total and VAT. Admins can switch this off in Settings.'}</p>

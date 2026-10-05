@@ -47,7 +47,7 @@ VIEWS.dashboard = async el => {
       ['Scan your first receipt', EX.rows.length > 0, '#/expenses'],
       ['Install the app on your phone (browser menu → Install app)', matchMedia('(display-mode: standalone)').matches, '']];
     if (steps.filter(s => s[1]).length < steps.length)
-      gs = `<div class="card" style="margin-bottom:14px"><div class="row between"><h3>Getting started</h3><a href="#" data-act="gsHide">hide</a></div>${steps.map(s => `<div style="padding:5px 0">${s[1] ? '✅' : '⬜'} ${s[2] ? `<a href="${s[2]}">${s[0]}</a>` : s[0]}</div>`).join('')}</div>`;
+      gs = `<div class="card" style="margin-bottom:14px"><div class="row between"><h3>Getting started</h3><a href="#" data-act="gsHide">hide</a></div>${steps.map(s => `<div style="padding:5px 0">${s[1] ? ic('check', 16) : ic('circle', 16)} ${s[2] ? `<a href="${s[2]}">${s[0]}</a>` : s[0]}</div>`).join('')}</div>`;
   }
   let mg = '';
   if (mgr && mgrData) {
@@ -62,10 +62,10 @@ VIEWS.dashboard = async el => {
       ${fin ? stat('Invoices outstanding', money(sum(iv, i => i.total)), `${iv.length} sent${overInv.length ? ` · <span class="flag">${overInv.length} overdue</span>` : ''}`, '#/invoices') : ''}</div>`;
   }
   const alerts = [
-    noRc ? `📎 ${noRc} expense(s) need a receipt` : '', rejected ? `↩ ${rejected} report(s) were rejected — fix and resubmit` : '',
-    limit && spent > limit ? `🚫 You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
+    noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
+    limit && spent > limit ? `${ic('ban', 16)} You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
   el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
-  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button><button class="btn ghost" data-act="bulkScan">📚 Scan many</button><button class="btn ghost" data-act="newMileage">🚗 Mileage</button></div>
+  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>
   <h3 class="sec">Me</h3><div class="grid">
     ${stat('Spent this month', money(spent), limit ? `of ${money(limit)} limit` : '')}
     ${stat('Not yet submitted', money(sum([...by('unreported'), ...by('draft')], e => e.amount_base)), '', '#/reports')}
@@ -89,7 +89,7 @@ VIEWS.bills = async el => {
   <div class="seg" style="max-width:560px">${['pending', 'approved', 'paid', 'rejected'].map(s => `<button data-act="billTab" data-v="${s}" class="${BL.tab === s ? 'on' : ''}">${s} (${rows.filter(b => b.status === s).length})</button>`).join('')}</div>
   <div class="card nopad" style="margin-top:12px">${list.length ? list.map(b => {
     const od = b.due_date && b.due_date < t && ['pending', 'approved'].includes(b.status), soon = b.due_date && b.due_date >= t && b.due_date <= isoDate(Date.now() + 7 * 864e5);
-    return `<div class="item" data-act="openBill" data-id="${b.id}"><div class="thumb" style="--c:#58286a">${b.file_path ? '📎' : '💷'}</div><div class="grow"><b>${esc(b.vendor)}</b><span class="sub">${esc(b.reference || '')} ${b.due_date ? '· due ' + dfmt(b.due_date) : ''} · ${esc(memberName(b.submitted_by))}</span>${od ? '<div class="flag">⚠ Overdue</div>' : soon ? '<div class="flag">Due within 7 days</div>' : ''}</div><div class="right"><div class="amt">${money(b.amount, b.currency)}</div>${pill(b.status)}</div></div>`;
+    return `<div class="item" data-act="openBill" data-id="${b.id}"><div class="thumb" style="--c:#58286a">${b.file_path ? ic('clip', 20) : ic('cash', 20)}</div><div class="grow"><b>${esc(b.vendor)}</b><span class="sub">${esc(b.reference || '')} ${b.due_date ? '· due ' + dfmt(b.due_date) : ''} · ${esc(memberName(b.submitted_by))}</span>${od ? `<div class="flag">${ic('warn', 14)} Overdue</div>` : soon ? '<div class="flag">Due within 7 days</div>' : ''}</div><div class="right"><div class="amt">${money(b.amount, b.currency)}</div>${pill(b.status)}</div></div>`;
   }).join('') : '<div class="empty">No bills here.</div>'}</div>`;
 };
 ACTIONS.billTab = t => { BL.tab = t.dataset.v; rerender(); };
@@ -110,9 +110,9 @@ ACTIONS.saveBill = wrap(async t => {
 });
 ACTIONS.openBill = t => {
   const b = BL.rows.find(x => x.id === t.dataset.id), mine = b.submitted_by === App.user.id;
-  modal(`<div class="row between"><h2>${esc(b.vendor)} ${pill(b.status)}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  modal(`<div class="row between"><h2>${esc(b.vendor)} ${pill(b.status)}</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   <table><tr><td>Amount</td><td class="r"><b>${money(b.amount, b.currency)}</b></td></tr><tr><td>Reference</td><td class="r">${esc(b.reference || '—')}</td></tr><tr><td>Due</td><td class="r">${b.due_date ? dfmt(b.due_date) : '—'}</td></tr><tr><td>Submitted by</td><td class="r">${esc(memberName(b.submitted_by))}</td></tr>${b.approved_by ? `<tr><td>Decided by</td><td class="r">${esc(memberName(b.approved_by))}</td></tr>` : ''}${b.paid_at ? `<tr><td>Paid</td><td class="r">${dfmt(b.paid_at)}</td></tr>` : ''}</table>
-  ${b.notes ? `<p class="sub">${esc(b.notes)}</p>` : ''}${b.file_path ? `<p><a href="#" data-act="viewBillFile" data-p="${esc(b.file_path)}">📎 View attached bill</a></p>` : ''}
+  ${b.notes ? `<p class="sub">${esc(b.notes)}</p>` : ''}${b.file_path ? `<p><a href="#" data-act="viewBillFile" data-p="${esc(b.file_path)}">${ic('clip', 16)} View attached bill</a></p>` : ''}
   <div class="row wrap gap" style="margin-top:14px">
     ${isManager() && b.status === 'pending' ? `<button class="btn ok" data-act="billSet" data-id="${b.id}" data-st="approved">Approve</button><button class="btn ghost" data-act="billSet" data-id="${b.id}" data-st="rejected">Reject</button>` : ''}
     ${isFinance() && b.status === 'approved' ? `<button class="btn ok" data-act="billSet" data-id="${b.id}" data-st="paid">Mark paid</button>` : ''}
@@ -134,14 +134,14 @@ VIEWS.invoices = async el => {
   const o = IV.rows.filter(i => ['sent'].includes(i.status));
   el.innerHTML = `<div class="grid">${stat('Outstanding', money(sum(o, i => i.total)), o.length + ' sent')}${stat('Overdue', money(sum(o.filter(i => ivStatus(i) === 'overdue'), i => i.total)))}${stat('Paid (all time)', money(sum(IV.rows.filter(i => i.status === 'paid'), i => i.total)))}</div>
   <div class="row wrap gap" style="margin-bottom:12px"><button class="btn" data-act="newInvoice">+ New invoice</button></div>
-  <div class="card nopad">${IV.rows.length ? IV.rows.map(i => `<div class="item" data-act="openInvoice" data-id="${i.id}"><div class="thumb" style="--c:#3e4d9c">🧮</div><div class="grow"><b>${esc(i.number)} · ${esc(i.client_name)}</b><span class="sub">Issued ${dfmt(i.issue_date)}${i.due_date ? ' · due ' + dfmt(i.due_date) : ''}</span></div><div class="right"><div class="amt">${money(i.total)}</div>${pill(ivStatus(i))}</div></div>`).join('') : '<div class="empty">No invoices yet.</div>'}</div>`;
+  <div class="card nopad">${IV.rows.length ? IV.rows.map(i => `<div class="item" data-act="openInvoice" data-id="${i.id}"><div class="thumb" style="--c:#3e4d9c">${ic('calc', 20)}</div><div class="grow"><b>${esc(i.number)} · ${esc(i.client_name)}</b><span class="sub">Issued ${dfmt(i.issue_date)}${i.due_date ? ' · due ' + dfmt(i.due_date) : ''}</span></div><div class="right"><div class="amt">${money(i.total)}</div>${pill(ivStatus(i))}</div></div>`).join('') : '<div class="empty">No invoices yet.</div>'}</div>`;
 };
 ACTIONS.newInvoice = () => invoiceForm();
 function invoiceForm(inv) {
   const i = inv || { items: [{ desc: '', qty: 1, unit_price: '' }], vat_rate: App.ws.vat_rate, issue_date: today(), due_date: isoDate(Date.now() + 30 * 864e5) };
   IV.cur = inv || null;
-  const row = it => `<tr class="li"><td><input class="li_d" value="${esc(it.desc)}" placeholder="Description"></td><td style="width:70px"><input class="li_q" type="number" step="0.01" value="${esc(it.qty)}"></td><td style="width:110px"><input class="li_p" type="number" step="0.01" value="${esc(it.unit_price)}"></td><td class="li_t r" style="width:90px"></td><td style="width:28px"><a href="#" data-act="liDel">✕</a></td></tr>`;
-  modal(`<div class="row between"><h2>${inv ? 'Edit ' + esc(inv.number) : 'New invoice'}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  const row = it => `<tr class="li"><td><input class="li_d" value="${esc(it.desc)}" placeholder="Description"></td><td style="width:70px"><input class="li_q" type="number" step="0.01" value="${esc(it.qty)}"></td><td style="width:110px"><input class="li_p" type="number" step="0.01" value="${esc(it.unit_price)}"></td><td class="li_t r" style="width:90px"></td><td style="width:28px"><a href="#" data-act="liDel">${ic('x', 14)}</a></td></tr>`;
+  modal(`<div class="row between"><h2>${inv ? 'Edit ' + esc(inv.number) : 'New invoice'}</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   <label>Client name</label><input id="i_client" value="${esc(i.client_name || '')}" autofocus><div class="two"><div><label>Client email</label><input id="i_email" value="${esc(i.client_email || '')}"></div><div><label>VAT %</label><input id="i_vat" type="number" step="0.5" value="${i.vat_rate}"></div></div>
   <label>Client address</label><textarea id="i_addr" rows="2">${esc(i.client_address || '')}</textarea>
   <div class="two"><div><label>Issue date</label><input id="i_issue" type="date" value="${i.issue_date}"></div><div><label>Due date</label><input id="i_due" type="date" value="${i.due_date || ''}"></div></div>
@@ -170,7 +170,7 @@ ACTIONS.saveInvoice = wrap(async () => {
 ACTIONS.openInvoice = t => {
   const i = IV.rows.find(x => x.id === t.dataset.id); IV.cur = i; const st = ivStatus(i);
   const co = esc(App.ws.company_details || App.ws.name).replace(/\n/g, '<br>');
-  modal(`<div id="rpt-print"><div class="row between"><div><h2>Invoice ${esc(i.number)}</h2><div class="sub">${co}</div></div><div class="right">${pill(st)}<div class="sub no-print"><button class="btn ghost sm" data-act="close">✕</button></div></div></div>
+  modal(`<div id="rpt-print"><div class="row between"><div><h2>Invoice ${esc(i.number)}</h2><div class="sub">${co}</div></div><div class="right">${pill(st)}<div class="sub no-print"><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div></div></div>
   <div class="two" style="margin:12px 0"><div><b>${esc(i.client_name)}</b><div class="sub">${esc(i.client_address || '').replace(/\n/g, '<br>')}</div></div><div class="right sub">Issued ${dfmt(i.issue_date)}<br>${i.due_date ? 'Due ' + dfmt(i.due_date) : ''}</div></div>
   <table><tr><th>Description</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr>${i.items.map(x => `<tr><td>${esc(x.desc)}</td><td class="r">${x.qty}</td><td class="r">${money(x.unit_price)}</td><td class="r">${money(x.qty * x.unit_price)}</td></tr>`).join('')}
   <tr><td colspan="3" class="r">Subtotal</td><td class="r">${money(i.subtotal)}</td></tr><tr><td colspan="3" class="r">VAT ${i.vat_rate}%</td><td class="r">${money(i.vat)}</td></tr><tr><td colspan="3" class="r"><b>Total due</b></td><td class="r"><b>${money(i.total)}</b></td></tr></table>
@@ -202,7 +202,7 @@ VIEWS.budgets = async el => {
     return `<div class="card"><div class="row between"><b>${esc(b.name)}</b>${isFinance() ? `<span><a href="#" data-act="editBudget" data-id="${b.id}">edit</a></span>` : ''}</div>
     <div class="sub">${b.category_id ? esc(catName(b.category_id)) : 'All categories'} · ${b.user_id ? esc(memberName(b.user_id)) : 'Everyone'}</div>
     <div class="meter"><i style="width:${Math.min(100, p)}%" class="${p > 100 ? 'over' : p > 80 ? 'warn' : ''}"></i></div>
-    <div class="row between"><b>${money(s)}</b><span class="sub">of ${money(b.amount)} · ${p.toFixed(0)}%</span></div>${p > 100 ? '<div class="flag">⚠ Over budget</div>' : p > 80 ? '<div class="flag">Nearing limit</div>' : ''}</div>`;
+    <div class="row between"><b>${money(s)}</b><span class="sub">of ${money(b.amount)} · ${p.toFixed(0)}%</span></div>${p > 100 ? `<div class="flag">${ic('warn', 14)} Over budget</div>` : p > 80 ? '<div class="flag">Nearing limit</div>' : ''}</div>`;
   }).join('') : '<div class="card empty">No budgets set.</div>'}</div>`;
   BL.budgets = budgets;
 };

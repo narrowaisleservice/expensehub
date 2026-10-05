@@ -7,7 +7,7 @@ VIEWS.reports = async el => {
   el.innerHTML = `<div class="row wrap gap" style="margin-bottom:12px"><button class="btn" data-act="newReport">+ New report</button><span class="sub">Group expenses into a report, then submit it for approval.</span></div>
   <div class="card nopad">${reps.length ? reps.map(r => {
     const items = exps.filter(e => e.report_id === r.id);
-    return `<div class="item" data-act="openReport" data-id="${r.id}"><div class="thumb" style="--c:#0d9488">📄</div>
+    return `<div class="item" data-act="openReport" data-id="${r.id}"><div class="thumb" style="--c:#0d9488">${ic('file', 20)}</div>
       <div class="grow"><b>${esc(r.name)}</b><span class="sub">${items.length} expense(s) · created ${dfmt(r.created_at)}${r.submitted_at ? ' · submitted ' + dfmt(r.submitted_at) : ''}</span>${r.status === 'rejected' && r.reject_reason ? `<div class="flag">Rejected: ${esc(r.reject_reason)}</div>` : ''}</div>
       <div class="right"><div class="amt">${money(sum(items, e => e.amount_base))}</div>${pill(r.status)}</div></div>`;
   }).join('') : '<div class="empty">No reports yet.</div>'}</div>`;
@@ -39,11 +39,11 @@ async function openReport(id) {
   const byCat = {}; items.forEach(e => byCat[catName(e.category_id)] = (byCat[catName(e.category_id)] || 0) + +e.amount_base);
   const canDecide = isManager() && st === 'submitted';
   modal(`<div id="rpt-print">
-  <div class="row between"><div><h2>${esc(r.name)} ${pill(st)}</h2><p class="sub">${esc(memberName(r.user_id))} · created ${dfmt(r.created_at)}</p></div><button class="btn ghost sm no-print" data-act="close">✕</button></div>
+  <div class="row between"><div><h2>${esc(r.name)} ${pill(st)}</h2><p class="sub">${esc(memberName(r.user_id))} · created ${dfmt(r.created_at)}</p></div><button class="btn ghost sm no-print" data-act="close">${ic('x', 14)}</button></div>
   ${st === 'rejected' && r.reject_reason ? `<div class="note">Rejected: ${esc(r.reject_reason)}</div>` : ''}
   <table><tr><th>Date</th><th>Merchant</th><th>Category</th><th class="r">Amount</th><th class="no-print"></th></tr>
-  ${items.map(e => `<tr><td>${dfmt(e.expense_date)}</td><td><a href="#" data-act="openExpFromReport" data-id="${e.id}">${esc(e.merchant || e.kind)}</a>${e.receipt_path ? ' 📎' : ''} <span class="no-print">${flagHTML(e.flags)}</span></td><td>${esc(catName(e.category_id))}</td><td class="r">${money(e.amount_base)}</td>
-    <td class="no-print">${mine && ['draft', 'rejected'].includes(st) ? `<a href="#" data-act="removeFromReport" data-id="${e.id}" title="Remove from report">✕</a>` : ''}</td></tr>`).join('')}
+  ${items.map(e => `<tr><td>${dfmt(e.expense_date)}</td><td><a href="#" data-act="openExpFromReport" data-id="${e.id}">${esc(e.merchant || e.kind)}</a>${e.receipt_path ? ' ' + ic('clip', 13) : ''} <span class="no-print">${flagHTML(e.flags)}</span></td><td>${esc(catName(e.category_id))}</td><td class="r">${money(e.amount_base)}</td>
+    <td class="no-print">${mine && ['draft', 'rejected'].includes(st) ? `<a href="#" data-act="removeFromReport" data-id="${e.id}" title="Remove from report">${ic('x', 14)}</a>` : ''}</td></tr>`).join('')}
   <tr><td colspan="3"><b>Total</b></td><td class="r"><b>${money(total)}</b></td><td class="no-print"></td></tr></table>
   <div class="two" style="margin-top:10px"><div class="sub">${items.filter(e => e.receipt_path).length}/${items.length} receipts attached${flagged ? ` · ${flagged} flagged` : ''}</div>
   <div class="sub" style="text-align:right">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} ${money(v)}`).join(' · ')}</div></div>
@@ -103,7 +103,7 @@ VIEWS.approvals = async el => {
   <div class="card nopad">${reps.length ? reps.map(r => {
     const fl = exps.filter(e => e.report_id === r.id && (e.flags || []).length).length;
     return `<div class="item" data-act="openReport" data-id="${r.id}">${AP.tab !== 'paid' ? `<input type="checkbox" class="selbox" data-act="apSel" data-id="${r.id}">` : ''}
-      <div class="thumb" style="--c:#0d9488">📄</div><div class="grow"><b>${esc(r.name)}</b><span class="sub">${esc(memberName(r.user_id))} · ${r.submitted_at ? 'submitted ' + dfmt(r.submitted_at) : ''}</span>${fl ? `<div class="flag">⚠ ${fl} flagged expense(s)</div>` : ''}</div>
+      <div class="thumb" style="--c:#0d9488">${ic('file', 20)}</div><div class="grow"><b>${esc(r.name)}</b><span class="sub">${esc(memberName(r.user_id))} · ${r.submitted_at ? 'submitted ' + dfmt(r.submitted_at) : ''}</span>${fl ? `<div class="flag">${ic('warn', 14)} ${fl} flagged expense(s)</div>` : ''}</div>
       <div class="right"><div class="amt">${money(AP.tot[r.id])}</div>${pill(r.status)}</div></div>`;
   }).join('') : `<div class="empty">Nothing here.</div>`}</div>`;
 };
@@ -133,7 +133,7 @@ VIEWS.trips = async el => {
   el.innerHTML = `<div class="row wrap gap" style="margin-bottom:12px"><button class="btn" data-act="newTrip">+ New trip</button><span class="sub">Group flights, hotels, mileage and meals per trip. Pick the trip on each expense.</span></div>
   <div class="card nopad">${trips.length ? trips.map(t => {
     const its = exps.filter(e => e.trip_id === t.id);
-    return `<div class="item" data-act="openTrip" data-id="${t.id}"><div class="thumb" style="--c:#3e4d9c">✈</div><div class="grow"><b>${esc(t.name)}</b><span class="sub">${esc(t.destination || '')} ${t.start_date ? '· ' + dfmt(t.start_date) : ''}${t.end_date ? ' – ' + dfmt(t.end_date) : ''}${isManager() ? ' · ' + esc(memberName(t.user_id)) : ''}</span></div>
+    return `<div class="item" data-act="openTrip" data-id="${t.id}"><div class="thumb" style="--c:#3e4d9c">${ic('trip', 20)}</div><div class="grow"><b>${esc(t.name)}</b><span class="sub">${esc(t.destination || '')} ${t.start_date ? '· ' + dfmt(t.start_date) : ''}${t.end_date ? ' – ' + dfmt(t.end_date) : ''}${isManager() ? ' · ' + esc(memberName(t.user_id)) : ''}</span></div>
       <div class="right"><div class="amt">${money(sum(its, e => e.amount_base))}</div>${pill(t.status)}</div></div>`;
   }).join('') : '<div class="empty">No trips yet.</div>'}</div>`;
 };
@@ -143,7 +143,7 @@ ACTIONS.openTrip = wrap(async t => {
   const items = await q(sb.from('exp_expenses').select('*').eq('trip_id', trip.id).order('expense_date'));
   const byCat = {}; items.forEach(e => byCat[catName(e.category_id)] = (byCat[catName(e.category_id)] || 0) + +e.amount_base);
   const mine = trip.user_id === App.user.id || isManager();
-  modal(`<div class="row between"><div><h2>${esc(trip.name)} ${pill(trip.status)}</h2><p class="sub">${esc(trip.destination || '')} ${trip.start_date ? '· ' + dfmt(trip.start_date) : ''}${trip.end_date ? ' – ' + dfmt(trip.end_date) : ''}</p>${trip.purpose ? `<p>${esc(trip.purpose)}</p>` : ''}</div><button class="btn ghost sm" data-act="close">✕</button></div>
+  modal(`<div class="row between"><div><h2>${esc(trip.name)} ${pill(trip.status)}</h2><p class="sub">${esc(trip.destination || '')} ${trip.start_date ? '· ' + dfmt(trip.start_date) : ''}${trip.end_date ? ' – ' + dfmt(trip.end_date) : ''}</p>${trip.purpose ? `<p>${esc(trip.purpose)}</p>` : ''}</div><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   <div class="grid3"><div class="card stat"><small>Total</small><b>${money(sum(items, e => e.amount_base))}</b></div><div class="card stat"><small>Expenses</small><b>${items.length}</b></div><div class="card stat"><small>Mileage</small><b>${sum(items, e => e.miles).toFixed(0)} mi</b></div></div>
   <div class="bars">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="b"><span class="n">${esc(k)}</span><span class="t"><i style="width:${v / Math.max(...Object.values(byCat)) * 100}%"></i></span><span class="v">${money(v)}</span></div>`).join('')}</div>
   <div class="card nopad" style="margin-top:12px">${items.length ? items.map(e => `<div class="item" data-act="openTripExp" data-id="${e.id}"><div class="grow"><b>${esc(e.merchant || e.kind)}</b><span class="sub">${dfmt(e.expense_date)} · ${esc(catName(e.category_id))}</span></div><div class="amt">${money(e.amount_base)}</div></div>`).join('') : '<div class="empty">No expenses on this trip yet.</div>'}</div>

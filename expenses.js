@@ -35,9 +35,9 @@ VIEWS.expenses = async el => {
   </div>
   <div class="row wrap gap" style="margin-bottom:12px">
     <button class="btn" data-act="newExpense">+ New expense</button>
-    <button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button>
-    <button class="btn ghost" data-act="bulkScan">📚 Scan many</button>
-    <button class="btn ghost" data-act="newMileage">🚗 Mileage</button>
+    <button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button>
+    <button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple</button>
+    <button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button>
     <span class="grow"></span>
     <select id="exp_fmt" title="Export format"><option value="generic">Export: CSV</option><option value="xero">Export: Xero</option><option value="quickbooks">Export: QuickBooks</option></select>
     <button class="btn ghost" data-act="exportExp">Export</button>
@@ -62,7 +62,7 @@ function expenseRow(e, selectable) {
   const c = cat(e.category_id), foreign = e.currency !== App.ws.currency;
   return `<div class="item" data-act="openExpense" data-id="${e.id}">
     ${sel ? `<input type="checkbox" class="selbox" data-act="selExp" data-id="${e.id}" ${EX.sel.has(e.id) ? 'checked' : ''}>` : selectable ? '<span style="width:18px"></span>' : ''}
-    <div class="thumb" style="--c:${esc(c?.color || '#9ca3af')}">${e.kind === 'mileage' ? '🚗' : e.kind === 'per_diem' ? '📅' : e.receipt_path ? '📎' : '🧾'}</div>
+    <div class="thumb" style="--c:${esc(c?.color || '#9ca3af')}">${e.kind === 'mileage' ? ic('car', 20) : e.kind === 'per_diem' ? ic('cal', 20) : e.receipt_path ? ic('clip', 20) : ic('receipt', 20)}</div>
     <div class="grow"><b>${esc(e.merchant || (e.kind === 'mileage' ? 'Mileage' : 'Expense'))}</b>
       <span class="sub">${dfmt(e.expense_date)} · ${esc(c?.name || 'Uncategorised')}${isManager() ? ' · ' + esc(memberName(e.user_id)) : ''}${e.billable ? ' · Billable' : ''}</span>
       <div>${flagHTML(e.flags)}</div></div>
@@ -161,7 +161,7 @@ function drawExpenseForm() {
   const myTrips = EX.trips.filter(t => t.user_id === App.user.id || t.id === e.trip_id);
   const catOpts = App.cats.filter(c => e.kind === 'mileage' ? true : true).map(c => `<option value="${c.id}" ${e.category_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   const foreign = e.currency !== App.ws.currency;
-  modal(`<div class="row between"><h2>${e.id ? 'Expense' : 'New expense'} ${e.id ? pill(expStatus(e)) : ''}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  modal(`<div class="row between"><h2>${e.id ? 'Expense' : 'New expense'} ${e.id ? pill(expStatus(e)) : ''}</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   ${e.id && e.user_id !== App.user.id ? `<p class="sub">Submitted by ${esc(memberName(e.user_id))}</p>` : ''}
   ${rep?.status === 'rejected' ? '<div class="note">This report was rejected — fix the expense and resubmit.</div>' : ''}
   ${(e.flags || []).length ? `<div class="note">${flagHTML(e.flags)}</div>` : ''}
@@ -170,7 +170,7 @@ function drawExpenseForm() {
   ${e.kind === 'mileage' ? `
     <div class="two"><div><label>From</label><input id="x_from" value="${esc(e.from_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div><div><label>To</label><input id="x_to" value="${esc(e.to_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div></div>
     <datalist id="places">${[...new Set(EX.rows.filter(r => r.kind === 'mileage').flatMap(r => [r.from_loc, r.to_loc]).filter(Boolean))].slice(0, 40).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
-    <button type="button" class="btn ghost sm" data-act="xDist" style="margin-bottom:8px">📍 Work out the distance</button> <span class="sub" id="x_distnote"></span>
+    <button type="button" class="btn ghost sm" data-act="xDist" style="margin-bottom:8px">${ic('pin', 16)} Work out the distance</button> <span class="sub" id="x_distnote"></span>
     <div class="two"><div><label>Miles</label><input id="x_miles" type="number" step="0.1" inputmode="decimal" value="${esc(e.miles)}"></div>
     <div><label>Date</label><input id="x_date" type="date" value="${e.expense_date}"></div></div>
     <label class="chk"><input type="checkbox" id="x_rt" ${e.roundTrip ? 'checked' : ''}> Round trip (double the miles)</label>
@@ -197,11 +197,11 @@ function drawExpenseForm() {
   ${e.kind === 'mileage' ? '' : `<label>Receipt</label>
   <div class="rcpt">
     <div class="note" style="text-align:left;font-size:12.5px"><b>Before you bin the paper receipt</b> — your photo must show: the <b>whole receipt</b> (all four corners), the <b>supplier name</b>, the <b>date</b>, what was bought and the <b>total</b>, plus <b>VAT</b> details if shown. It must be sharp and readable. Keep the original if it's unclear.</div>
-    ${e.file ? `<div class="sub">📎 ${esc(e.file.name)} ready to upload</div>` : e.receipt_path ? `<div class="sub">📎 Receipt attached — <a href="#" data-act="xView">view</a>${e.receipt_uploaded_at ? ' · stored ' + new Date(e.receipt_uploaded_at).toLocaleString('en-GB') : ''}</div>` : '<div class="sub">No receipt attached</div>'}
+    ${e.file ? `<div class="sub">${ic('clip', 16)} ${esc(e.file.name)} ready to upload</div>` : e.receipt_path ? `<div class="sub">${ic('clip', 16)} Receipt attached — <a href="#" data-act="xView">view</a>${e.receipt_uploaded_at ? ' · stored ' + new Date(e.receipt_uploaded_at).toLocaleString('en-GB') : ''}</div>` : '<div class="sub">No receipt attached</div>'}
     <div class="row wrap gap" style="justify-content:center;margin-top:8px">
-      <button type="button" class="btn ghost sm" data-act="xCamera">📷 Take photo</button>
-      <button type="button" class="btn ghost sm" data-act="xPick">📎 Upload</button>
-      ${e.file && e.file.type.startsWith('image/') ? '<button type="button" class="btn sm" data-act="xScan">✨ Rescan</button>' : ''}
+      <button type="button" class="btn ghost sm" data-act="xCamera">${ic('camera', 16)} Take photo</button>
+      <button type="button" class="btn ghost sm" data-act="xPick">${ic('clip', 16)} Upload</button>
+      ${e.file && e.file.type.startsWith('image/') ? `<button type="button" class="btn sm" data-act="xScan">${ic('spark', 16)} Rescan</button>` : ''}
       ${(e.file || e.receipt_path) ? '<button type="button" class="btn ghost sm" data-act="xRemoveFile">Remove</button>' : ''}
     </div><input type="file" id="x_file" accept="image/*,application/pdf" hidden>
     <div id="x_ocr" class="sub"></div></div>`}
@@ -222,7 +222,7 @@ function updateHints() {
   const fx = parseFloat(v('#x_fx')) || 1, amt = (parseFloat(v('#x_amount')) || 0) * (k === 'expense' ? fx : 1), vat = parseFloat(v('#x_vat')) || 0, c = cat(v('#x_cat')), date = v('#x_date');
   const hasRc = !!(X.file || X.receipt_path);
   if (k === 'expense' && amt > 0) {
-    if (!hasRc && amt > ws.receipt_required_over && c?.receipt_required !== false) h.push('📎 A receipt is needed for this expense — add a photo.');
+    if (!hasRc && amt > ws.receipt_required_over && c?.receipt_required !== false) h.push('A receipt is needed for this expense — add a photo.');
     if (vat > 0 && !hasRc) h.push('VAT can only be reclaimed with a receipt.');
     if (vat > 0 && amt > 250 && !v('#x_svat').trim()) h.push('Over £250 with VAT: add the supplier’s VAT number from the receipt.');
     if (c?.per_item_limit && amt > c.per_item_limit) h.push(`Over the ${c.name} limit of ${money(c.per_item_limit)} — it will be flagged for approval.`);
@@ -233,7 +233,7 @@ function updateHints() {
   if (k === 'mileage' && (v('#x_from').trim() === '' || v('#x_to').trim() === '' || !v('#x_notes').trim())) h.push('Mileage needs a start, an end and the business purpose (in Notes).');
   if (date && date > today()) h.push('The date is in the future.');
   else if (date && date < isoDate(new Date(Date.now() - 60 * 864e5))) h.push('This is more than 60 days old — it will be flagged.');
-  box.innerHTML = h.length ? `<div class="note" style="text-align:left;margin-top:10px">${h.map(x => `<div>⚠ ${esc(x)}</div>`).join('')}</div>` : '';
+  box.innerHTML = h.length ? `<div class="note" style="text-align:left;margin-top:10px">${h.map(x => `<div>${ic('warn', 14)} ${esc(x)}</div>`).join('')}</div>` : '';
 }
 function wireExpenseForm() {
   $('#mc').oninput = debounce(() => { readXSafe(); updateHints(); }, 150);
@@ -248,7 +248,7 @@ function wireExpenseForm() {
     if (X.kind !== 'expense' || !$('#x_merchant') || !$('#x_cat')) return;
     const m = ($('#x_merchant').value || '').toLowerCase(); if (!m) return;
     const r = App.rules.find(r => m.includes(r.match_text.toLowerCase()));
-    if (r && !$('#x_cat').value) { $('#x_cat').value = r.category_id; if (r.billable) { $('#x_bill').checked = true; $('#x_custbox').hidden = false; } $('#x_sugg').textContent = '✨ Auto-categorised from your rules'; }
+    if (r && !$('#x_cat').value) { $('#x_cat').value = r.category_id; if (r.billable) { $('#x_bill').checked = true; $('#x_custbox').hidden = false; } $('#x_sugg').textContent = 'Auto-categorised from your rules'; }
   }, 300));
   const mil = () => { readX(); const el = $('#x_est'); if (el) el.textContent = 'Estimated: ' + money(estimateMileage()) + ' (HMRC-style rates applied by the server)'; };
   ['#x_miles', '#x_rt'].forEach(s => g(s)?.addEventListener('input', mil));
@@ -261,7 +261,7 @@ function wireExpenseForm() {
     checkReceiptImage(f).then(r => {
       if (X.file !== f) return;
       X.receipt_check = r.ok ? 'ok' : 'unclear';
-      if (!r.ok) { X.qualityNote = '<div class="note bad" style="text-align:left">⚠ ' + r.problems.map(esc).join('<br>⚠ ') + '<br>You can still save it, but retake the photo and keep the paper receipt if it is hard to read.</div>'; $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote); }
+      if (!r.ok) { X.qualityNote = '<div class="note bad" style="text-align:left">' + ic('warn', 14) + ' ' + r.problems.map(esc).join('<br>' + ic('warn', 14) + ' ') + '<br>You can still save it, but retake the photo and keep the paper receipt if it is hard to read.</div>'; $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote); }
     });
     if (f.type.startsWith('image/') && f.type !== 'image/heic') ACTIONS.xScan();   // read the receipt and autofill straight away
   });
@@ -347,7 +347,7 @@ async function readReceipt(file, getWorker) {
 }
 ACTIONS.xScan = async () => {
   const out = $('#x_ocr');
-  if (!navigator.onLine && !window.Tesseract) { out.textContent = '📴 Offline — your photo is kept on this device and will be read automatically when you are back online. You can also type the details in now.'; return; }
+  if (!navigator.onLine && !window.Tesseract) { out.textContent = 'Offline — your photo is kept on this device and will be read automatically when you are back online. You can also type the details in now.'; return; }
   out.textContent = 'Reading receipt…';
   try {
     const p = await readReceipt(X.file); readX();
@@ -365,7 +365,7 @@ ACTIONS.xScan = async () => {
       X.currency = p.currency; try { X.fx_rate = await fxRate(p.currency, App.ws.currency); note = ` Currency read as ${p.currency} (rate ${X.fx_rate}).`; } catch (e) { note = ` Currency looks like ${p.currency} — enter the rate.`; }
     }
     const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
-    drawExpenseForm(); $('#x_ocr').textContent = `✨ ${p.ai ? 'Read with AI' : 'Read on this device'} — filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT', p.svat && 'supplier VAT no.', p.catId && 'category'].filter(Boolean).join(', ') || 'nothing found'}.${note}${p.notReceipt ? ' This does not look like a receipt.' : ''}${p.unclear ? ' It looks hard to read — keep the paper copy.' : ''} Please check every field against the receipt.`;
+    drawExpenseForm(); $('#x_ocr').textContent = `${p.ai ? 'Read with AI' : 'Read on this device'} — filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT', p.svat && 'supplier VAT no.', p.catId && 'category'].filter(Boolean).join(', ') || 'nothing found'}.${note}${p.notReceipt ? ' This does not look like a receipt.' : ''}${p.unclear ? ' It looks hard to read — keep the paper copy.' : ''} Please check every field against the receipt.`;
     if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
   } catch (e) { out.textContent = ''; fail(e); }
 };
@@ -419,11 +419,11 @@ function drawBk() {
   const el = $('#bk'); if (!el) return;
   const done = BK.rows.filter(r => r.state === 'done').length, n = BK.rows.length;
   const catOpts = c => `<option value="">— Category —</option>` + App.cats.map(k => `<option value="${k.id}" ${c === k.id ? 'selected' : ''}>${esc(k.name)}</option>`).join('');
-  el.innerHTML = `<div class="row between"><h2>Scan many receipts</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  el.innerHTML = `<div class="row between"><h2>Multiple receipts</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   <div class="note" style="text-align:left">${BK.busy ? `Reading receipts… ${done} of ${n} done. You can start checking the finished ones, but wait for the reading to finish before saving.` : `All read. Check every row against its receipt, fix anything wrong, then save.`}</div>
   ${BK.rows.map((r, i) => `<div class="card" style="margin:10px 0;padding:12px">
     <div class="row between"><span class="sub">${i + 1}. ${esc(r.file.name)} ${r.state === 'reading' ? '— reading…' : r.state === 'wait' ? '— waiting' : ''}</span><a href="#" data-act="bulkDrop" data-id="${r.id}">remove</a></div>
-    ${r.msg ? `<div class="sub" style="color:var(--accent)">⚠ ${esc(r.msg)}</div>` : ''}
+    ${r.msg ? `<div class="sub" style="color:var(--accent)">${ic('warn', 14)} ${esc(r.msg)}</div>` : ''}
     <label>Merchant</label><input data-r="${r.id}" data-f="merchant" value="${esc(r.merchant)}">
     <div class="two"><div><label>Date</label><input type="date" data-r="${r.id}" data-f="date" value="${r.date}"></div><div><label>Amount (${esc(r.currency)})</label><input type="number" step="0.01" inputmode="decimal" data-r="${r.id}" data-f="amount" value="${esc(r.amount)}"></div></div>
     <div class="two"><div><label>VAT included</label><input type="number" step="0.01" inputmode="decimal" data-r="${r.id}" data-f="vat" value="${esc(r.vat)}"></div><div><label>Category</label><select data-r="${r.id}" data-f="cat">${catOpts(r.cat)}</select></div></div>
@@ -438,7 +438,7 @@ async function runBulk() {
       if (r.state !== 'wait') continue;
       r.state = 'reading'; drawBkSafe();
       try {
-        if (!navigator.onLine) { r.msg = '📴 Offline — saved on this device and read when you are back online.'; }
+        if (!navigator.onLine) { r.msg = 'Offline — saved on this device and read when you are back online.'; }
         else if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
           const qc = await checkReceiptImage(r.file); r.check = qc.ok ? 'ok' : 'unclear'; r.msg = qc.problems.join(' ');
           const p = await readReceipt(r.file, async () => (worker = worker || await newOcrWorker()));

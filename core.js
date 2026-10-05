@@ -33,13 +33,47 @@ const memberName = id => { const m = member(id); return m ? (m.display_name || m
 const cat = id => App.cats.find(c => c.id === id);
 const catName = id => cat(id)?.name || 'Uncategorised';
 
+
+/* ---- icon set (inline SVG, inherits text colour) ---- */
+const IC = {
+  dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
+  circle: '<circle cx="12" cy="12" r="9"/>',
+  trip: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+  cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+  calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.2 2.3 3.5 5.2"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
+  multi: '<rect x="7" y="6" width="14" height="14" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/><circle cx="14" cy="13" r="2.5"/>',
+  car: '<path d="M4 15v-4l2-5h12l2 5v4z"/><path d="M4 11h16M7 18v2M17 18v2M7.5 14.5h.01M16.5 14.5h.01"/>',
+  pin: '<path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  clip: '<path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.7 1.7 0 0 1-2.4-2.4L14 7.6"/>',
+  warn: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  offline: '<path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01M3 3l18 18"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  back: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  tick: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
+};
+const ic = (n, s = 16) => `<svg class="i" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ''}</svg>`;
+
 const FLAG_LABELS = {
   no_receipt: 'No receipt', over_limit: 'Over spend limit', over_category_limit: 'Over category limit',
   possible_duplicate: 'Possible duplicate', old_expense: 'Older than 60 days',
   vat_no_receipt: 'VAT claimed, no receipt', vat_invoice_needed: 'Over £250: needs VAT invoice + supplier VAT no.', receipt_unclear: 'Receipt may be unclear'
 };
 const pill = s => `<span class="pill ${esc(s)}">${esc(s)}</span>`;
-const flagHTML = f => (f || []).map(x => `<span class="flag" title="${esc(FLAG_LABELS[x] || x)}">⚠ ${esc(FLAG_LABELS[x] || x)}</span>`).join('');
+const flagHTML = f => (f || []).map(x => `<span class="flag" title="${esc(FLAG_LABELS[x] || x)}">${ic('warn', 14)} ${esc(FLAG_LABELS[x] || x)}</span>`).join('');
 
 function toCSV(rows) {
   const qt = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -181,9 +215,9 @@ async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace
 /* ---------- navigation / router ---------- */
 /* [id, label, icon, who can see it, group heading]  — who: '' everyone, 'manager' approver/finance/admin, 'finance' finance/admin */
 const NAV = [
-  ['dashboard', 'Dashboard', '▦', '', ''], ['expenses', 'Expenses', '🧾', '', ''], ['reports', 'Reports', '📄', '', ''], ['approvals', 'Approvals', '✔', 'manager', ''], ['trips', 'Trips', '✈', '', ''],
-  ['bills', 'Bills to pay', '💷', 'finance', 'Finance'], ['invoices', 'Invoices', '🧮', 'finance', 'Finance'], ['budgets', 'Budgets', '🎯', 'finance', 'Finance'], ['analytics', 'Analytics', '📊', 'finance', 'Finance'],
-  ['team', 'Team', '👥', 'manager', 'Admin'], ['audit', 'Audit log', '🕑', 'manager', 'Admin'], ['settings', 'Settings', '⚙', '', 'Admin']
+  ['dashboard', 'Dashboard', 'dash', '', ''], ['expenses', 'Expenses', 'receipt', '', ''], ['reports', 'Reports', 'file', '', ''], ['approvals', 'Approvals', 'check', 'manager', ''], ['trips', 'Trips', 'trip', '', ''],
+  ['bills', 'Bills to pay', 'cash', 'finance', 'Finance'], ['invoices', 'Invoices', 'calc', 'finance', 'Finance'], ['budgets', 'Budgets', 'target', 'finance', 'Finance'], ['analytics', 'Analytics', 'chart', 'finance', 'Finance'],
+  ['team', 'Team', 'users', 'manager', 'Admin'], ['audit', 'Audit log', 'clock', 'manager', 'Admin'], ['settings', 'Settings', 'sliders', '', 'Admin']
 ];
 const navAllowed = n => !n[3] || (n[3] === 'manager' && isManager()) || (n[3] === 'finance' && isFinance());
 function renderShell() {
@@ -191,7 +225,7 @@ function renderShell() {
   const items = NAV.filter(navAllowed), groups = new Set(items.map(n => n[4]));
   $('#nav').innerHTML = items.map(n => {
     const head = n[4] !== last && n[4] && (groups.size > 1) ? `<div class="grp">${n[4]}</div>` : ''; last = n[4];
-    return head + `<a href="#/${n[0]}" data-nav="${n[0]}"><span class="ic">${n[2]}</span><span>${n[1]}</span><b class="badge" id="b-${n[0]}" hidden></b></a>`;
+    return head + `<a href="#/${n[0]}" data-nav="${n[0]}"><span class="ic">${ic(n[2], 18)}</span><span>${n[1]}</span><b class="badge" id="b-${n[0]}" hidden></b></a>`;
   }).join('');
   $('#wsname').textContent = App.ws.name;
   $('#whoami').textContent = (App.me.display_name || App.user.email) + ' · ' + App.me.role;
@@ -206,7 +240,7 @@ async function route() {
   $('#title').textContent = (NAV.find(n => n[0] === name) || NAV[0])[1];
   document.body.classList.remove('menu');
   const el = $('#view'); el.innerHTML = '<div class="empty">Loading…</div>';
-  try { await v(el); } catch (e) { el.innerHTML = isNetErr(e) ? `<div class="card"><h3>📴 You're offline</h3><p class="sub">This page needs a connection. You can still add expenses and scan receipts — they are kept on this device and sync automatically when you are back online.</p><button class="btn" data-act="newExpense">+ New expense</button></div>` : `<div class="card"><h3>Something went wrong</h3><p class="sub">${esc(e.message || e)}</p></div>`; console.error(e); }
+  try { await v(el); } catch (e) { el.innerHTML = isNetErr(e) ? `<div class="card"><h3>${ic('offline', 16)} You're offline</h3><p class="sub">This page needs a connection. You can still add expenses and scan receipts — they are kept on this device and sync automatically when you are back online.</p><button class="btn" data-act="newExpense">+ New expense</button></div>` : `<div class="card"><h3>Something went wrong</h3><p class="sub">${esc(e.message || e)}</p></div>`; console.error(e); }
   refreshBadges();
 }
 const rerender = () => route();

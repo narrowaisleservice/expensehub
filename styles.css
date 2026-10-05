@@ -119,3 +119,10 @@ figure{margin:12px 0;page-break-inside:avoid}figure img{max-width:100%;max-heigh
 
 .item.mhead{background:var(--bg);font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);cursor:default;padding:8px 14px}.item.mhead b{font-weight:600}
 #netbar{padding:8px 14px;font-size:13px;text-align:center;font-weight:500}#netbar.off{background:#fef3c7;color:#92400e}#netbar.sync{background:#e0f2fe;color:#075985}#netbar.warn{background:#fee2e2;color:#991b1b}#netbar a{margin-left:8px;font-weight:700;color:inherit;text-decoration:underline}.pill.queued{background:#e0f2fe;color:#075985}
+/* icons */
+svg.i{vertical-align:-3px;flex:none}
+.btn svg.i,.flag svg.i,.note svg.i{margin-right:6px;vertical-align:-3px}.btn.sm svg.i{margin-right:4px}
+.iconbtn{display:inline-grid;place-items:center}.iconbtn svg.i{margin:0}
+#nav .ic{display:grid;place-items:center}#nav .ic svg.i{margin:0}
+.thumb{color:var(--c,#666)}.thumb svg.i{margin:0}
+.btn.ghost.sm[data-act="close"] svg.i{margin:0}

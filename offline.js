@@ -33,8 +33,8 @@ const OFF = {
     const n = this.items.length, bad = this.items.filter(i => i.state === 'error').length, off = !navigator.onLine || App.offline;
     if (!off && !n) { b.hidden = true; return; }
     b.hidden = false; b.className = off ? 'off' : (bad ? 'warn' : 'sync');
-    b.innerHTML = off ? `📴 You're offline${n ? ` — ${n} waiting to sync` : ' — you can still add expenses, they will sync when you are back online'}`
-      : `📤 ${n} waiting to sync${bad ? ` (${bad} need your attention)` : ''} <a href="#" data-act="syncNow">Sync now</a>`;
+    b.innerHTML = off ? `${ic('offline', 16)} You're offline${n ? ` — ${n} waiting to sync` : ' — you can still add expenses, they will sync when you are back online'}`
+      : `${ic('upload', 16)} ${n} waiting to sync${bad ? ` (${bad} need your attention)` : ''} <a href="#" data-act="syncNow">Sync now</a>`;
   },
 
   /* send queued items to the server, oldest first. Stops quietly if the connection drops. */
@@ -98,9 +98,9 @@ const OFF = {
     if (!this.items.length) return '';
     return `<div class="card nopad" style="margin-bottom:12px"><div class="item mhead"><b>Waiting to sync (${this.items.length})</b><span class="grow"></span>${navigator.onLine ? '<a href="#" data-act="syncNow">Sync now</a>' : '<span>offline</span>'}</div>${this.items.map(i => {
       const p = i.payload;
-      return `<div class="item" data-act="openQueued" data-id="${i.id}"><div class="thumb" style="--c:#9ca3af">${i.file ? '📎' : p.kind === 'mileage' ? '🚗' : '🧾'}</div>
+      return `<div class="item" data-act="openQueued" data-id="${i.id}"><div class="thumb" style="--c:#9ca3af">${i.file ? ic('clip', 20) : p.kind === 'mileage' ? ic('car', 20) : ic('receipt', 20)}</div>
       <div class="grow"><b>${esc(p.merchant && p.merchant !== 'Receipt to read' ? p.merchant : 'Receipt to read')}</b><span class="sub">${dfmt(p.expense_date)}${p.kind === 'mileage' ? ' · ' + p.miles + ' mi' : ''}${i.needsRead && !(p.amount > 0) ? ' · will be read when online' : ''}</span>
-      ${i.state === 'error' ? `<div><span class="flag">⚠ ${esc(i.err)}</span></div>` : ''}</div>
+      ${i.state === 'error' ? `<div><span class="flag">${ic('warn', 14)} ${esc(i.err)}</span></div>` : ''}</div>
       <div class="right"><div class="amt">${p.amount > 0 ? money(p.amount, p.currency) : p.kind === 'mileage' ? '' : '—'}</div><span class="pill ${i.state === 'error' ? 'rejected' : 'queued'}">${i.state === 'error' ? 'needs details' : 'waiting'}</span></div></div>`;
     }).join('')}</div>`;
   }
