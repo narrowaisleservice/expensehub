@@ -1,6 +1,6 @@
 /* Network-first service worker: always tries the network so new deployments show up immediately,
    and falls back to the cache when offline. Bump VERSION to force-clear old caches. */
-const VERSION = 'eh-v3';
+const VERSION = 'eh-v4';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k !== VERSION) await caches.delete(k);
