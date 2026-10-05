@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ExpenseHub</title>
+<title>FlexiExpenseHub</title>
 <meta name="description" content="Expenses, receipts, mileage, approvals, bills and invoices in one place.">
-<meta name="theme-color" content="#0b1f1c">
+<meta name="theme-color" content="#0a3350">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
 <!-- Sign in / sign up -->
 <div id="auth" hidden>
   <div class="authcard">
-    <div class="logo big"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <div class="logo big"><img src="flexi-logo-red.svg" alt="Flexi"><span>ExpenseHub</span></div>
     <p class="sub center">Receipts, mileage, approvals, bills and invoices — one place.</p>
     <div class="seg" id="authTabs"><button data-at="in" class="on">Sign in</button><button data-at="up">Create account</button></div>
     <form id="authForm" autocomplete="on">
@@ -34,7 +34,7 @@
 <!-- Onboarding: first workspace -->
 <div id="onboard" hidden>
   <div class="authcard">
-    <div class="logo big"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <div class="logo big"><img src="flexi-logo-red.svg" alt="Flexi"><span>ExpenseHub</span></div>
     <h2>Set up your workspace</h2>
     <p class="sub">A workspace is your company or team. You will be its admin and can invite colleagues afterwards. If you were invited, sign out and sign in again with the invited email address.</p>
     <label>Workspace name</label><input id="o_ws" placeholder="e.g. Acme Ltd">
@@ -47,7 +47,7 @@
 <!-- App shell -->
 <div id="app" hidden>
   <aside id="side">
-    <div class="logo"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <div class="logo"><img src="flexi-logo-white.svg" alt="Flexi"><span>ExpenseHub</span></div>
     <select id="wsswitch" aria-label="Workspace"></select>
     <nav id="nav"></nav>
     <div class="who sub" id="whoami"></div>
