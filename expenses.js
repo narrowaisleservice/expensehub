@@ -30,6 +30,7 @@ VIEWS.expenses = async el => {
   <div class="row wrap gap" style="margin-bottom:12px">
     <button class="btn" data-act="newExpense">+ New expense</button>
     <button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button>
+    <button class="btn ghost" data-act="bulkScan">📚 Scan many</button>
     <button class="btn ghost" data-act="newMileage">🚗 Mileage</button>
     <span class="grow"></span>
     <select id="exp_fmt" title="Export format"><option value="generic">Export: CSV</option><option value="xero">Export: Xero</option><option value="quickbooks">Export: QuickBooks</option></select>
@@ -253,20 +254,26 @@ async function prepareForOcr(file) {
   x.putImageData(id, 0, 0);
   return new Promise(r => c.toBlob(r, 'image/png'));
 }
-async function ocrReceipt(file) {
+async function newOcrWorker() {
   if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
-  const blob = await prepareForOcr(file), worker = await Tesseract.createWorker('eng'), texts = [];
-  try {
-    for (const psm of ['6', '4']) { await worker.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1' }); texts.push((await worker.recognize(blob)).data.text); }
-  } finally { worker.terminate(); }
+  return Tesseract.createWorker('eng');
+}
+async function ocrWith(worker, file) {
+  const blob = await prepareForOcr(file), texts = [];
+  for (const psm of ['6', '4']) { await worker.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1' }); texts.push((await worker.recognize(blob)).data.text); }
   return texts;
+}
+async function ocrReceipt(file) { const w = await newOcrWorker(); try { return await ocrWith(w, file); } finally { w.terminate(); } }
+/* choose the best fields across the two reading passes */
+function mergeParsed(texts) {
+  const parsed = texts.map(parseReceipt), p = { ...(parsed.find(r => r.consistent) || parsed.reduce((a, b) => (b.score > a.score ? b : a))) };
+  p.merchant = (parsed.find(r => r.known) || p).merchant || p.merchant; p.date = p.date || parsed.find(r => r.date)?.date; p.currency = p.currency || parsed.find(r => r.currency)?.currency;
+  return p;
 }
 ACTIONS.xScan = async () => {
   const out = $('#x_ocr'); out.textContent = 'Reading receipt… (the first scan downloads the reader, ~10s)';
   try {
-    const parsed = (await ocrReceipt(X.file)).map(parseReceipt);
-    const p = { ...(parsed.find(r => r.consistent) || parsed.reduce((a, b) => (b.score > a.score ? b : a))) };
-    p.merchant = (parsed.find(r => r.known) || p).merchant || p.merchant; p.date = p.date || parsed.find(r => r.date)?.date; p.currency = p.currency || parsed.find(r => r.currency)?.currency; readX();
+    const p = mergeParsed(await ocrReceipt(X.file)); readX();
     if (p.merchant) X.merchant = p.merchant;
     if (p.amount) X.amount = p.amount.toFixed(2);
     if (p.date) X.expense_date = p.date;
@@ -310,6 +317,81 @@ function parseReceipt(raw) {
   out.score = ['merchant', 'amount', 'date', 'vat'].filter(k => out[k]).length + (out.consistent ? 5 : 0);
   return out;
 }
+/* ---------- bulk receipt upload: pick many photos, read them all, review, save ---------- */
+const BK = { rows: [], busy: false };
+ACTIONS.bulkScan = () => {
+  const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,application/pdf'; i.multiple = true; i.style.display = 'none'; document.body.appendChild(i);
+  i.onchange = () => { const fs = [...i.files]; i.remove(); startBulk(fs); }; i.click();
+};
+function startBulk(files) {
+  if (!files.length) return;
+  if (files.length > 20) { toast('Reading the first 20 — do the rest in a second batch', 'err'); files = files.slice(0, 20); }
+  const big = files.filter(f => f.size > 15 * 1024 * 1024); if (big.length) toast(big.length + ' file(s) over 15MB skipped', 'err');
+  BK.rows = files.filter(f => f.size <= 15 * 1024 * 1024).map(f => ({ id: uuid(), file: f, merchant: '', date: today(), amount: '', vat: '', currency: App.ws.currency, fx: 1, cat: '', check: 'ok', state: 'wait', msg: '' }));
+  if (!BK.rows.length) return;
+  modal('<div id="bk"></div>', { wide: true });
+  $('#mc').oninput = ev => { const t = ev.target, r = BK.rows.find(x => x.id === t.dataset.r); if (r && t.dataset.f) r[t.dataset.f] = t.value; };
+  drawBk(); runBulk();
+}
+function drawBk() {
+  const el = $('#bk'); if (!el) return;
+  const done = BK.rows.filter(r => r.state === 'done').length, n = BK.rows.length;
+  const catOpts = c => `<option value="">— Category —</option>` + App.cats.map(k => `<option value="${k.id}" ${c === k.id ? 'selected' : ''}>${esc(k.name)}</option>`).join('');
+  el.innerHTML = `<div class="row between"><h2>Scan many receipts</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  <div class="note" style="text-align:left">${BK.busy ? `Reading receipts… ${done} of ${n} done. You can start checking the finished ones, but wait for the reading to finish before saving.` : `All read. Check every row against its receipt, fix anything wrong, then save.`}</div>
+  ${BK.rows.map((r, i) => `<div class="card" style="margin:10px 0;padding:12px">
+    <div class="row between"><span class="sub">${i + 1}. ${esc(r.file.name)} ${r.state === 'reading' ? '— reading…' : r.state === 'wait' ? '— waiting' : ''}</span><a href="#" data-act="bulkDrop" data-id="${r.id}">remove</a></div>
+    ${r.msg ? `<div class="sub" style="color:var(--accent)">⚠ ${esc(r.msg)}</div>` : ''}
+    <label>Merchant</label><input data-r="${r.id}" data-f="merchant" value="${esc(r.merchant)}">
+    <div class="two"><div><label>Date</label><input type="date" data-r="${r.id}" data-f="date" value="${r.date}"></div><div><label>Amount (${esc(r.currency)})</label><input type="number" step="0.01" inputmode="decimal" data-r="${r.id}" data-f="amount" value="${esc(r.amount)}"></div></div>
+    <div class="two"><div><label>VAT included</label><input type="number" step="0.01" inputmode="decimal" data-r="${r.id}" data-f="vat" value="${esc(r.vat)}"></div><div><label>Category</label><select data-r="${r.id}" data-f="cat">${catOpts(r.cat)}</select></div></div>
+  </div>`).join('')}
+  <div class="row wrap gap end" style="margin-top:12px"><button class="btn ghost" data-act="close">Cancel</button><button class="btn" data-act="bulkSave" ${BK.busy || !BK.rows.length ? 'disabled' : ''}>Save ${BK.rows.length} expense(s)</button></div>`;
+}
+async function runBulk() {
+  BK.busy = true; let worker = null;
+  try {
+    for (const r of BK.rows) {
+      if (!$('#bk')) break;
+      if (r.state !== 'wait') continue;
+      r.state = 'reading'; drawBkSafe();
+      try {
+        if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
+          const qc = await checkReceiptImage(r.file); r.check = qc.ok ? 'ok' : 'unclear'; r.msg = qc.problems.join(' ');
+          worker = worker || await newOcrWorker();
+          const p = mergeParsed(await ocrWith(worker, r.file));
+          if (p.merchant) r.merchant = p.merchant; if (p.amount) r.amount = p.amount.toFixed(2); if (p.date) r.date = p.date; if (p.vat) r.vat = p.vat.toFixed(2);
+          if (p.currency && p.currency !== App.ws.currency) { r.currency = p.currency; try { r.fx = await fxRate(p.currency, App.ws.currency); } catch (e) { r.msg += ' Foreign currency — check the amount.'; } }
+          const rule = App.rules.find(x => (r.merchant || '').toLowerCase().includes(x.match_text.toLowerCase())); if (rule) r.cat = rule.category_id;
+          if (!r.amount) r.msg = (r.msg + ' Could not read the total — enter it.').trim();
+        } else r.msg = 'Not read automatically — enter the details.';
+      } catch (e) { r.msg = 'Could not read this one — enter the details.'; }
+      r.state = 'done'; drawBkSafe();
+    }
+  } finally { try { worker?.terminate(); } catch (e) { } BK.busy = false; drawBkSafe(true); }
+}
+function drawBkSafe(force) {   // don't redraw under the user's cursor while they are typing in a row
+  const a = document.activeElement; if (!force && a && a.dataset && a.dataset.r) { $('#bk .note') && ($('#bk .note').textContent = `Reading receipts… ${BK.rows.filter(r => r.state === 'done').length} of ${BK.rows.length} done.`); return; }
+  drawBk();
+}
+ACTIONS.bulkDrop = (t, ev) => { ev.preventDefault(); BK.rows = BK.rows.filter(r => r.id !== t.dataset.id); if (!BK.rows.length) return closeModal(); drawBk(); };
+ACTIONS.bulkSave = wrap(async () => {
+  if (BK.busy) return toast('Still reading — wait for it to finish', 'err');
+  const left = []; let ok = 0;
+  for (const r of BK.rows) {
+    const amount = parseFloat(r.amount);
+    if (!(amount > 0) || !(r.merchant || '').trim()) { r.msg = 'Needs a merchant and an amount.'; left.push(r); continue; }
+    try {
+      const path = await uploadReceipt(r.file), hash = uploadReceipt.last?.hash || null;
+      await q(sb.from('exp_expenses').insert({ workspace_id: App.ws.id, user_id: App.user.id, kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: 'personal', vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_path: path, receipt_hash: hash, receipt_check: r.check }));
+      ok++;
+    } catch (e) { r.msg = e.message || 'Could not save'; left.push(r); }
+  }
+  BK.rows = left;
+  if (ok) toast(ok + ' expense(s) saved'); 
+  if (left.length) { toast(left.length + ' still need attention', 'err'); drawBk(); } else closeModal();
+  rerender();
+});
 ACTIONS.xSave = wrap(async () => {
   readX();
   const e = X;

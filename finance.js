@@ -50,7 +50,7 @@ VIEWS.dashboard = async el => {
     noRc ? `📎 ${noRc} expense(s) need a receipt` : '', rejected ? `↩ ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `🚫 You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
   el.innerHTML = `${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
-  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button><button class="btn ghost" data-act="newMileage">🚗 Mileage</button></div>
+  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button><button class="btn ghost" data-act="bulkScan">📚 Scan many</button><button class="btn ghost" data-act="newMileage">🚗 Mileage</button></div>
   <h3 class="sec">Me</h3><div class="grid">
     ${stat('Spent this month', money(spent), limit ? `of ${money(limit)} limit` : '')}
     ${stat('Not yet submitted', money(sum([...by('unreported'), ...by('draft')], e => e.amount_base)), '', '#/reports')}
