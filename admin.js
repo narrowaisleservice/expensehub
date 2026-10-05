@@ -27,7 +27,7 @@ ACTIONS.invite = wrap(async () => {
   await q(sb.from('exp_invites').upsert({ workspace_id: App.ws.id, email, role: $('#inv_role').value, accepted: false }, { onConflict: 'workspace_id,email' }));
   toast('Invite created — share the link with them'); rerender();
 });
-ACTIONS.shareInvite = (t, ev) => { ev.preventDefault(); const url = location.origin + location.pathname; location.href = `mailto:${encodeURIComponent(t.dataset.email)}?subject=${encodeURIComponent('Join ' + App.ws.name + ' on FlexiExpenseHub')}&body=${encodeURIComponent(`I've invited you to ${App.ws.name} on FlexiExpenseHub.\n\nOpen ${url}, choose "Create account" and sign up with this email address (${t.dataset.email}). You'll be added to the workspace automatically.`)}`; };
+ACTIONS.shareInvite = (t, ev) => { ev.preventDefault(); const url = location.origin + location.pathname; location.href = `mailto:${encodeURIComponent(t.dataset.email)}?subject=${encodeURIComponent('Join ' + App.ws.name + ' on Flexi Expenses')}&body=${encodeURIComponent(`I've invited you to ${App.ws.name} on Flexi Expenses.\n\nOpen ${url}, choose "Create account" and sign up with this email address (${t.dataset.email}). You'll be added to the workspace automatically.`)}`; };
 ACTIONS.revokeInvite = wrap(async (t, ev) => { ev.preventDefault(); await q(sb.from('exp_invites').delete().eq('id', t.dataset.id)); rerender(); });
 ACTIONS.saveMember = wrap(async t => {
   const tr = t.closest('tr'), lim = $('.m_lim', tr).value;

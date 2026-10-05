@@ -1,4 +1,4 @@
-/* ExpenseHub core: Supabase client, state, helpers, router, modal/toast */
+/* Flexi Expenses core: Supabase client, state, helpers, router, modal/toast */
 const CFG = window.EXPENSEHUB_CONFIG;
 const sb = supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 const App = { user: null, workspaces: [], ws: null, me: null, members: [], cats: [], rules: [] };

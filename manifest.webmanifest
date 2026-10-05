@@ -1,6 +1,6 @@
 {
   "id": "/flexiexpensehub",
-  "name": "FlexiExpenseHub",
+  "name": "Flexi Expenses",
   "short_name": "Flexi Expenses",
   "description": "Expenses, receipts, mileage, approvals, bills and invoices.",
   "start_url": "./index.html",

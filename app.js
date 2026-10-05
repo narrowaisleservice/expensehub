@@ -1,4 +1,4 @@
-/* ExpenseHub boot: auth, onboarding, theme, workspace switching, PWA */
+/* Flexi Expenses boot: auth, onboarding, theme, workspace switching, PWA */
 
 /* ---------- theme ---------- */
 function setTheme(mode) {
