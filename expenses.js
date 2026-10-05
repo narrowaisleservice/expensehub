@@ -115,7 +115,7 @@ let X = null; // working copy
 const blankExpense = (kind = 'expense') => ({ id: null, kind, merchant: '', expense_date: today(), amount: '', currency: App.ws.currency, fx_rate: 1, category_id: '', notes: '', billable: false, customer: '', payment_method: 'personal', receipt_path: null, miles: '', from_loc: '', to_loc: '', vat_amount: '', supplier_vat_no: '', receipt_hash: null, receipt_uploaded_at: null, receipt_check: null, trip_id: '', flags: [], file: null, roundTrip: false, days: '', rate: '' });
 ACTIONS.newExpense = () => openExpense();
 ACTIONS.newMileage = () => openExpense(null, 'mileage');
-ACTIONS.scanExpense = () => { openExpense(); setTimeout(() => $('#x_file')?.click(), 150); };
+ACTIONS.scanExpense = () => { openExpense(); setTimeout(() => { const i = $('#x_file'); if (i) { i.setAttribute('capture', 'environment'); i.click(); } }, 150); };
 ACTIONS.openExpense = (t) => openExpense(t.dataset.id);
 
 async function openExpense(id, kind) {
@@ -184,10 +184,11 @@ function drawExpenseForm() {
     <div class="note" style="text-align:left;font-size:12.5px"><b>Before you bin the paper receipt</b> — your photo must show: the <b>whole receipt</b> (all four corners), the <b>supplier name</b>, the <b>date</b>, what was bought and the <b>total</b>, plus <b>VAT</b> details if shown. It must be sharp and readable. Keep the original if it's unclear.</div>
     ${e.file ? `<div class="sub">📎 ${esc(e.file.name)} ready to upload</div>` : e.receipt_path ? `<div class="sub">📎 Receipt attached — <a href="#" data-act="xView">view</a>${e.receipt_uploaded_at ? ' · stored ' + new Date(e.receipt_uploaded_at).toLocaleString('en-GB') : ''}</div>` : '<div class="sub">No receipt attached</div>'}
     <div class="row wrap gap" style="justify-content:center;margin-top:8px">
-      <button type="button" class="btn ghost sm" data-act="xPick">📷 Take photo / upload</button>
-      ${e.file && e.file.type.startsWith('image/') ? '<button type="button" class="btn sm" data-act="xScan">✨ Scan & autofill</button>' : ''}
+      <button type="button" class="btn ghost sm" data-act="xCamera">📷 Take photo</button>
+      <button type="button" class="btn ghost sm" data-act="xPick">📎 Upload</button>
+      ${e.file && e.file.type.startsWith('image/') ? '<button type="button" class="btn sm" data-act="xScan">✨ Rescan</button>' : ''}
       ${(e.file || e.receipt_path) ? '<button type="button" class="btn ghost sm" data-act="xRemoveFile">Remove</button>' : ''}
-    </div><input type="file" id="x_file" accept="image/*,application/pdf" capture="environment" hidden>
+    </div><input type="file" id="x_file" accept="image/*,application/pdf" hidden>
     <div id="x_ocr" class="sub"></div></div>`}
   </fieldset>
   <div class="row wrap gap end" style="margin-top:16px">
@@ -217,16 +218,18 @@ function wireExpenseForm() {
   g('#x_file')?.addEventListener('change', ev => {
     const f = ev.target.files[0]; if (!f) return;
     if (f.size > 15 * 1024 * 1024) return toast('File is over 15MB', 'err');
-    readX(); X.file = f; X.receipt_check = 'ok'; drawExpenseForm();
+    readX(); X.file = f; X.receipt_check = 'ok'; X.qualityNote = ''; drawExpenseForm();
     checkReceiptImage(f).then(r => {
       if (X.file !== f) return;
       X.receipt_check = r.ok ? 'ok' : 'unclear';
-      const out = $('#x_ocr'); if (out && !r.ok) out.innerHTML = '<div class="note bad" style="text-align:left">⚠ ' + r.problems.map(esc).join('<br>⚠ ') + '<br>You can still save it, but retake the photo and keep the paper receipt if it is hard to read.</div>';
+      if (!r.ok) { X.qualityNote = '<div class="note bad" style="text-align:left">⚠ ' + r.problems.map(esc).join('<br>⚠ ') + '<br>You can still save it, but retake the photo and keep the paper receipt if it is hard to read.</div>'; $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote); }
     });
+    if (f.type.startsWith('image/') && f.type !== 'image/heic') ACTIONS.xScan();   // read the receipt and autofill straight away
   });
 }
 ACTIONS.xKind = t => { readX(); X.kind = t.dataset.v; if (X.kind === 'mileage') X.category_id = App.cats.find(c => c.is_mileage)?.id || ''; drawExpenseForm(); };
-ACTIONS.xPick = () => $('#x_file').click();
+ACTIONS.xCamera = () => { const i = $('#x_file'); i.setAttribute('capture', 'environment'); i.click(); };
+ACTIONS.xPick = () => { const i = $('#x_file'); i.removeAttribute('capture'); i.click(); };
 ACTIONS.xView = (t, ev) => {
   ev.preventDefault(); const p = X.receipt_path;
   viewFile(p, `<p class="sub" style="margin-top:6px">Stored ${X.receipt_uploaded_at ? new Date(X.receipt_uploaded_at).toLocaleString('en-GB') : ''} · fingerprint (SHA-256) ${X.receipt_hash ? esc(X.receipt_hash.slice(0, 16)) + '…' : 'n/a'}</p>`);
@@ -235,7 +238,7 @@ ACTIONS.xRemoveFile = () => { readX(); X.file = null; X.receipt_path = null; dra
 ACTIONS.xVat = (t, ev) => { ev.preventDefault(); const a = parseFloat($('#x_amount').value) || 0; $('#x_vat').value = (a - a / 1.2).toFixed(2); };
 ACTIONS.xFx = async (t, ev) => { ev.preventDefault(); const c = $('#x_cur').value; try { $('#x_fx').value = await fxRate(c, App.ws.currency); toast('Rate updated'); } catch (e) { fail(e); } };
 ACTIONS.xScan = async () => {
-  const out = $('#x_ocr'); out.textContent = 'Scanning receipt… (first scan downloads the reader, ~10s)';
+  const out = $('#x_ocr'); out.textContent = 'Reading receipt… (the first scan downloads the reader, ~10s)';
   try {
     if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
     const r = await Tesseract.recognize(X.file, 'eng');
@@ -246,6 +249,7 @@ ACTIONS.xScan = async () => {
     if (p.vat) X.vat_amount = p.vat.toFixed(2);
     const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) X.category_id = rule.category_id;
     drawExpenseForm(); $('#x_ocr').textContent = `✨ Filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT'].filter(Boolean).join(', ') || 'nothing found'} — please check.`;
+    if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
   } catch (e) { out.textContent = ''; fail(e); }
 };
 function parseReceipt(text) {
