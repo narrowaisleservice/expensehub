@@ -36,7 +36,7 @@ VIEWS.expenses = async el => {
   <div class="row wrap gap" style="margin-bottom:12px">
     <button class="btn" data-act="newExpense">+ New expense</button>
     <button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button>
-    <button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple</button>
+    <button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button>
     <button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button>
     <span class="grow"></span>
     <select id="exp_fmt" title="Export format"><option value="generic">Export: CSV</option><option value="xero">Export: Xero</option><option value="quickbooks">Export: QuickBooks</option></select>

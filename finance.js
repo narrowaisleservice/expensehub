@@ -66,7 +66,7 @@ VIEWS.dashboard = async el => {
     noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', stale ? `${ic('clock', 16)} ${stale} expense(s) have not been put on a report for over a week` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `${ic('ban', 16)} You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
   el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
-  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>
+  <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>
   <h3 class="sec">Me</h3><div class="grid">
     ${stat('Spent this month', money(spent), limit ? `of ${money(limit)} limit` : '')}
     ${stat('Not yet submitted', money(sum([...by('unreported'), ...by('draft')], e => e.amount_base)), '', '#/reports')}
