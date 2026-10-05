@@ -6,19 +6,25 @@ const expStatus = e => e.report_id ? (EX.reps[e.report_id]?.status || 'draft') :
 const canEditExpense = e => !e.id || ((e.user_id === App.user.id && ['unreported', 'draft', 'rejected'].includes(expStatus(e))) || isFinance());
 
 async function fetchExpenses(opts = {}) {
-  let qy = sb.from('exp_expenses').select('*').eq('workspace_id', App.ws.id).order('expense_date', { ascending: false }).order('created_at', { ascending: false }).limit(2000);
-  if (opts.from) qy = qy.gte('expense_date', opts.from);
-  if (opts.to) qy = qy.lte('expense_date', opts.to);
-  const [rows, reps] = await Promise.all([q(qy), q(sb.from('exp_reports').select('id,name,status,user_id').eq('workspace_id', App.ws.id))]);
-  EX.rows = rows; EX.reps = Object.fromEntries(reps.map(r => [r.id, r]));
-  return rows;
+  try {
+    let qy = sb.from('exp_expenses').select('*').eq('workspace_id', App.ws.id).order('expense_date', { ascending: false }).order('created_at', { ascending: false }).limit(2000);
+    if (opts.from) qy = qy.gte('expense_date', opts.from);
+    if (opts.to) qy = qy.lte('expense_date', opts.to);
+    const [rows, reps] = await Promise.all([q(qy), q(sb.from('exp_reports').select('id,name,status,user_id').eq('workspace_id', App.ws.id))]);
+    EX.rows = rows; EX.reps = Object.fromEntries(reps.map(r => [r.id, r])); EX.stale = false;
+    if (!opts.from && !opts.to) OFF.cacheRows(App.ws.id, rows, EX.reps);
+  } catch (e) {
+    const c = isNetErr(e) && OFF.cachedRows(App.ws.id); if (!c) throw e;
+    EX.rows = c.rows; EX.reps = c.reps; EX.stale = true;       // offline: show what we last saw
+  }
+  return EX.rows;
 }
 
 /* ---------- list view ---------- */
 VIEWS.expenses = async el => {
-  await fetchExpenses();
-  EX.trips = await q(sb.from('exp_trips').select('id,name,status,user_id').eq('workspace_id', App.ws.id).order('start_date', { ascending: false }));
-  el.innerHTML = `
+  await fetchExpenses(); await OFF.refresh();
+  try { EX.trips = await q(sb.from('exp_trips').select('id,name,status,user_id').eq('workspace_id', App.ws.id).order('start_date', { ascending: false })); } catch (e) { if (!isNetErr(e)) throw e; EX.trips = EX.trips || []; }
+  el.innerHTML = `${EX.stale ? '<div class="note" style="margin-bottom:10px">Showing the list as it was when you last had a signal.</div>' : ''}${OFF.pendingHTML()}
   <div class="toolbar">
     <input id="f_q" placeholder="Search merchant, notes, customer…" value="${esc(EX.f.q)}">
     <select id="f_status"><option value="">All statuses</option>${['unreported', 'draft', 'submitted', 'approved', 'rejected', 'reimbursed'].map(s => `<option ${EX.f.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
@@ -129,9 +135,9 @@ async function openExpense(id, kind) {
   if (id) {
     const e = EX.rows.find(r => r.id === id) || await q(sb.from('exp_expenses').select('*').eq('id', id).single());
     X = { ...blankExpense(e.kind), ...e, category_id: e.category_id || '', trip_id: e.trip_id || '', vat_amount: e.vat_amount ?? '', miles: e.miles ?? '', file: null, roundTrip: false };
-    if (!EX.reps[e.report_id] && e.report_id) { const r = await q(sb.from('exp_reports').select('id,name,status,user_id').eq('id', e.report_id).single()); EX.reps[r.id] = r; }
+    if (!EX.reps[e.report_id] && e.report_id) { try { const r = await q(sb.from('exp_reports').select('id,name,status,user_id').eq('id', e.report_id).single()); EX.reps[r.id] = r; } catch (err) { if (!isNetErr(err)) throw err; } }
   } else X = blankExpense(kind || 'expense');
-  if (!EX.trips.length) EX.trips = await q(sb.from('exp_trips').select('id,name,status,user_id').eq('workspace_id', App.ws.id));
+  if (!EX.trips.length) { try { EX.trips = await q(sb.from('exp_trips').select('id,name,status,user_id').eq('workspace_id', App.ws.id)); } catch (e) { if (!isNetErr(e)) throw e; } }
   if (kind === 'mileage') X.category_id = App.cats.find(c => c.is_mileage)?.id || '';
   drawExpenseForm();
 }
@@ -202,7 +208,7 @@ function drawExpenseForm() {
   </fieldset>
   <div id="x_hints"></div>
   <div class="row wrap gap end" style="margin-top:16px">
-    ${e.id && ed ? '<button class="btn ghost danger-t" data-act="xDelete" style="margin-right:auto">Delete</button>' : ''}
+    ${(e.id || e.qid) && ed ? '<button class="btn ghost danger-t" data-act="xDelete" style="margin-right:auto">Delete</button>' : ''}
     <button class="btn ghost" data-act="close">${ed ? 'Cancel' : 'Close'}</button>${ed ? '<button class="btn" data-act="xSave">Save</button>' : ''}
   </div>
   ${e.id ? '<hr><h3>Chat</h3><div id="x_chat" class="chat"><div class="sub">Loading…</div></div><div class="row gap" style="margin-top:8px"><input id="x_msg" placeholder="Ask or answer a question about this expense…"><button class="btn sm" data-act="xSend">Send</button></div>' : ''}`, { wide: false });
@@ -239,7 +245,7 @@ function wireExpenseForm() {
     if (ev.target.value !== App.ws.currency) { try { $('#x_fx').value = await fxRate(ev.target.value, App.ws.currency); } catch (e) { toast('Enter the rate manually', 'err'); } } else $('#x_fx').value = 1;
   });
   g('#x_merchant')?.addEventListener('input', debounce(() => {
-    if (X.kind !== 'expense') return;
+    if (X.kind !== 'expense' || !$('#x_merchant') || !$('#x_cat')) return;
     const m = ($('#x_merchant').value || '').toLowerCase(); if (!m) return;
     const r = App.rules.find(r => m.includes(r.match_text.toLowerCase()));
     if (r && !$('#x_cat').value) { $('#x_cat').value = r.category_id; if (r.billable) { $('#x_bill').checked = true; $('#x_custbox').hidden = false; } $('#x_sugg').textContent = '✨ Auto-categorised from your rules'; }
@@ -340,7 +346,9 @@ async function readReceipt(file, getWorker) {
   return null;
 }
 ACTIONS.xScan = async () => {
-  const out = $('#x_ocr'); out.textContent = 'Reading receipt…';
+  const out = $('#x_ocr');
+  if (!navigator.onLine && !window.Tesseract) { out.textContent = '📴 Offline — your photo is kept on this device and will be read automatically when you are back online. You can also type the details in now.'; return; }
+  out.textContent = 'Reading receipt…';
   try {
     const p = await readReceipt(X.file); readX();
     if (!p) { out.textContent = 'This file type cannot be read automatically — enter the details by hand.'; return; }
@@ -430,7 +438,8 @@ async function runBulk() {
       if (r.state !== 'wait') continue;
       r.state = 'reading'; drawBkSafe();
       try {
-        if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
+        if (!navigator.onLine) { r.msg = '📴 Offline — saved on this device and read when you are back online.'; }
+        else if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
           const qc = await checkReceiptImage(r.file); r.check = qc.ok ? 'ok' : 'unclear'; r.msg = qc.problems.join(' ');
           const p = await readReceipt(r.file, async () => (worker = worker || await newOcrWorker()));
           if (!p) throw new Error('unreadable');
@@ -457,43 +466,67 @@ ACTIONS.bulkSave = wrap(async () => {
   if (BK.busy) return toast('Still reading — wait for it to finish', 'err');
   const left = []; let ok = 0;
   for (const r of BK.rows) {
-    const amount = parseFloat(r.amount);
+    const amount = parseFloat(r.amount), offline = !navigator.onLine;
+    if (offline && !(amount > 0 && (r.merchant || '').trim())) {      // photo only: queue it, it is read once back online
+      try { await OFF.queue({ kind: 'expense', merchant: (r.merchant || '').trim() || 'Receipt to read', expense_date: r.date || today(), amount: amount > 0 ? amount : 0, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_check: r.check, notes: '', billable: false, customer: null, miles: null, from_loc: null, to_loc: null, trip_id: null }, r.file, true); ok++; } catch (e) { r.msg = e.message || 'Could not keep it on this device'; left.push(r); }
+      continue;
+    }
     if (!(amount > 0) || !(r.merchant || '').trim()) { r.msg = 'Needs a merchant and an amount.'; left.push(r); continue; }
+    const row = { kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_check: r.check, notes: '', billable: false, customer: null, miles: null, from_loc: null, to_loc: null, trip_id: null }, nid = uuid();
     try {
       const path = await uploadReceipt(r.file), hash = uploadReceipt.last?.hash || null;
-      await q(sb.from('exp_expenses').insert({ workspace_id: App.ws.id, user_id: App.user.id, kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_path: path, receipt_hash: hash, receipt_check: r.check }));
+      await q(sb.from('exp_expenses').insert({ ...row, id: nid, workspace_id: App.ws.id, user_id: App.user.id, receipt_path: path, receipt_hash: hash }));
       ok++;
-    } catch (e) { r.msg = e.message || 'Could not save'; left.push(r); }
+    } catch (e) {
+      if (isNetErr(e)) { try { await OFF.queue(row, r.file, false, nid); ok++; continue; } catch (e2) { /* fall through */ } }
+      r.msg = e.message || 'Could not save'; left.push(r);
+    }
   }
   BK.rows = left;
-  if (ok) toast(ok + ' expense(s) saved'); 
+  await OFF.refresh(); if (ok) toast(ok + (navigator.onLine ? ' expense(s) saved' : ' expense(s) saved on this device — they sync when you are online'));
   if (left.length) { toast(left.length + ' still need attention', 'err'); drawBk(); } else closeModal();
   rerender();
 });
 ACTIONS.xSave = wrap(async () => {
   readX();
-  const e = X;
+  const e = X, offline = !navigator.onLine;
+  const canDefer = e.kind === 'expense' && e.file && offline;            // photo only: it will be read once back online
+  let needsRead = false;
   if (e.kind === 'per_diem') { e.amount = ((parseFloat(e.days) || 0) * (parseFloat(e.rate) || 0)).toFixed(2); e.merchant = e.merchant || 'Per diem'; if (e.days) e.notes = `${e.days} day(s) @ ${e.rate}. ${e.notes || ''}`.trim(); }
   if (e.kind === 'mileage') { e.miles = (parseFloat(e.miles) || 0) * (e.roundTrip ? 2 : 1); e.merchant = e.from_loc && e.to_loc ? `${e.from_loc} → ${e.to_loc}` : 'Mileage'; e.amount = 0; if (!(e.miles > 0)) return toast('Enter the miles', 'err'); if (!(e.from_loc || '').trim() || !(e.to_loc || '').trim()) return toast('Enter where the journey started and ended (required for mileage records)', 'err'); if (!(e.notes || '').trim()) return toast('Enter the business purpose of the journey', 'err'); }
-  else if (!(parseFloat(e.amount) > 0)) return toast('Enter an amount', 'err');
-  if (e.kind === 'expense' && !e.merchant) return toast('Enter a merchant', 'err');
+  else if (!(parseFloat(e.amount) > 0)) { if (canDefer) needsRead = true; else return toast('Enter an amount', 'err'); }
+  if (e.kind === 'expense' && !e.merchant) { if (canDefer) { e.merchant = 'Receipt to read'; needsRead = true; } else return toast('Enter a merchant', 'err'); }
+  const base = {
+    kind: e.kind, merchant: e.merchant, expense_date: e.expense_date, amount: parseFloat(e.amount) || 0, currency: e.currency, fx_rate: e.fx_rate || 1,
+    category_id: e.category_id || null, notes: e.notes, billable: e.billable, customer: e.billable ? e.customer : null, payment_method: e.payment_method,
+    miles: e.kind === 'mileage' ? e.miles : null, from_loc: e.from_loc || null, to_loc: e.to_loc || null,
+    vat_amount: e.vat_amount === '' ? null : parseFloat(e.vat_amount), trip_id: e.trip_id || null, supplier_vat_no: (e.supplier_vat_no || '').trim() || null,
+    receipt_check: e.file ? (e.receipt_check || 'ok') : (e.receipt_path ? e.receipt_check || null : null)
+  };
+  const nid = uuid();
+  const keepLocal = async () => {                                         // save on this device; it syncs when the signal is back
+    if (e.qid) { const it = (await OFF.all()).find(i => i.id === e.qid); if (it) { it.payload = base; it.file = e.file || null; it.needsRead = needsRead; it.state = 'queued'; it.err = ''; it.up = null; await OFF.put(it); } }
+    else await OFF.queue(base, e.file, needsRead, nid);
+    await OFF.refresh(); closeModal(); toast(navigator.onLine ? 'Saved — syncing…' : 'Saved on this device — it will sync when you are back online'); rerender(); if (navigator.onLine) OFF.sync();
+  };
+  if (e.qid || (!e.id && offline)) return keepLocal();
+  if (e.id && offline) return toast("You're offline — changes to saved expenses need a connection", 'err');
   const btn = $('[data-act=xSave]'); btn.disabled = true; btn.textContent = 'Saving…';
   try {
+    const payload = { ...base };
     if (e.file) { e.receipt_path = await uploadReceipt(e.file); e.receipt_hash = uploadReceipt.last?.hash || null; }
-    const payload = {
-      kind: e.kind, merchant: e.merchant, expense_date: e.expense_date, amount: parseFloat(e.amount) || 0, currency: e.currency, fx_rate: e.fx_rate || 1,
-      category_id: e.category_id || null, notes: e.notes, billable: e.billable, customer: e.billable ? e.customer : null, payment_method: e.payment_method,
-      receipt_path: e.receipt_path || null, miles: e.kind === 'mileage' ? e.miles : null, from_loc: e.from_loc || null, to_loc: e.to_loc || null,
-      vat_amount: e.vat_amount === '' ? null : parseFloat(e.vat_amount), trip_id: e.trip_id || null,
-      supplier_vat_no: (e.supplier_vat_no || '').trim() || null, receipt_hash: e.receipt_path ? (e.file ? e.receipt_hash : e.receipt_hash || null) : null, receipt_check: e.receipt_path ? (e.file ? e.receipt_check : e.receipt_check || null) : null
-    };
+    payload.receipt_path = e.receipt_path || null; payload.receipt_hash = e.receipt_path ? e.receipt_hash || null : null;
     if (e.id) await q(sb.from('exp_expenses').update(payload).eq('id', e.id));
-    else await q(sb.from('exp_expenses').insert({ ...payload, workspace_id: App.ws.id, user_id: App.user.id }));
+    else await q(sb.from('exp_expenses').insert({ ...payload, id: nid, workspace_id: App.ws.id, user_id: App.user.id }));
     closeModal(); toast('Saved'); rerender();
+  } catch (err) {
+    if (!e.id && isNetErr(err)) return keepLocal();                       // signal dropped mid-save
+    throw err;
   } finally { if (btn) { btn.disabled = false; btn.textContent = 'Save'; } }
 });
 ACTIONS.xDelete = async () => {
   if (!await confirmBox('Delete this expense?', 'Delete', true)) return;
+  if (X.qid) { await OFF.del(X.qid); await OFF.refresh(); closeModal(); toast('Deleted'); return rerender(); }
   await q(sb.from('exp_expenses').delete().eq('id', X.id)); closeModal(); toast('Deleted'); rerender();
 };
 

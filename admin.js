@@ -62,6 +62,10 @@ VIEWS.settings = async el => {
   <div class="card" style="margin-top:14px"><div class="row between"><h3>Auto-categorise rules</h3><button class="btn sm" data-act="newRule">+ Add</button></div>
     <p class="sub">When a merchant name contains the text, the category is filled in automatically (and the receipt scanner uses it too).</p>
     <table><tr><th>Merchant contains</th><th>Category</th><th>Billable</th><th></th></tr>${App.rules.map(r => `<tr><td>${esc(r.match_text)}</td><td>${esc(catName(r.category_id))}</td><td>${r.billable ? 'Yes' : ''}</td><td><a href="#" data-act="delRule" data-id="${r.id}">delete</a></td></tr>`).join('') || '<tr><td colspan="4" class="sub">No rules</td></tr>'}</table></div>` : ''}
+  <div class="card" style="margin-top:14px"><h3>Offline</h3>
+    <p class="sub">No signal? Keep working. New expenses, mileage and receipt photos are saved on this device and sent automatically when you are back online; photos are read then.</p>
+    <p class="sub">Status: <b>${navigator.onLine ? 'online' : 'offline'}</b> · ${OFF.items.length} waiting to sync</p>
+    <button class="btn ghost" data-act="syncNow">Sync now</button></div>
   <div class="card" style="margin-top:14px"><h3>Records &amp; privacy</h3>
     <ul class="sub" style="margin:6px 0 10px 18px;line-height:1.6">
       <li>Receipt images are stored privately, time-stamped, fingerprinted (SHA-256) and cannot be edited or replaced once a report is submitted.</li>

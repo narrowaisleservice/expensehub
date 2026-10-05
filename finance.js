@@ -26,7 +26,7 @@ VIEWS.dashboard = async el => {
     sb.from('exp_reports').select('id', { count: 'exact', head: true }).eq('workspace_id', App.ws.id).eq('status', 'approved'),
     sb.from('exp_bills').select('amount,due_date,status').eq('workspace_id', App.ws.id).in('status', ['pending', 'approved']),
     sb.from('exp_invoices').select('total,due_date,status').eq('workspace_id', App.ws.id).eq('status', 'sent')
-  ]) : null]);
+  ]).catch(() => null) : null]);
   const mine = EX.rows.filter(e => e.user_id === uid), monthMine = mine.filter(e => e.expense_date >= ms);
   const by = s => mine.filter(e => expStatus(e) === s);
   const noRc = mine.filter(e => ['unreported', 'draft', 'rejected'].includes(expStatus(e)) && (e.flags || []).includes('no_receipt')).length;

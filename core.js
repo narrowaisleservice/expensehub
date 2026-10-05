@@ -173,6 +173,7 @@ async function selectWorkspace(id) {
   ]);
   App.members = members; App.cats = cats; App.rules = rules;
   App.me = members.find(m => m.user_id === App.user.id) || { role: w._role };
+  if (typeof OFF !== 'undefined') OFF.saveSnap();
   return true;
 }
 async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace(App.ws.id); }
@@ -205,7 +206,7 @@ async function route() {
   $('#title').textContent = (NAV.find(n => n[0] === name) || NAV[0])[1];
   document.body.classList.remove('menu');
   const el = $('#view'); el.innerHTML = '<div class="empty">Loading…</div>';
-  try { await v(el); } catch (e) { el.innerHTML = `<div class="card"><h3>Something went wrong</h3><p class="sub">${esc(e.message || e)}</p></div>`; console.error(e); }
+  try { await v(el); } catch (e) { el.innerHTML = isNetErr(e) ? `<div class="card"><h3>📴 You're offline</h3><p class="sub">This page needs a connection. You can still add expenses and scan receipts — they are kept on this device and sync automatically when you are back online.</p><button class="btn" data-act="newExpense">+ New expense</button></div>` : `<div class="card"><h3>Something went wrong</h3><p class="sub">${esc(e.message || e)}</p></div>`; console.error(e); }
   refreshBadges();
 }
 const rerender = () => route();
