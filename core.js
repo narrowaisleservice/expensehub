@@ -35,7 +35,8 @@ const catName = id => cat(id)?.name || 'Uncategorised';
 
 const FLAG_LABELS = {
   no_receipt: 'No receipt', over_limit: 'Over spend limit', over_category_limit: 'Over category limit',
-  possible_duplicate: 'Possible duplicate', old_expense: 'Older than 60 days'
+  possible_duplicate: 'Possible duplicate', old_expense: 'Older than 60 days',
+  vat_no_receipt: 'VAT claimed, no receipt', vat_invoice_needed: 'Over £250: needs VAT invoice + supplier VAT no.', receipt_unclear: 'Receipt may be unclear'
 };
 const pill = s => `<span class="pill ${esc(s)}">${esc(s)}</span>`;
 const flagHTML = f => (f || []).map(x => `<span class="flag" title="${esc(FLAG_LABELS[x] || x)}">⚠ ${esc(FLAG_LABELS[x] || x)}</span>`).join('');
@@ -79,7 +80,7 @@ function askText(title, label, placeholder = '', okLabel = 'OK', allowEmpty = fa
 }
 
 /* ---------- files: compress, upload, signed urls ---------- */
-function compressImage(file, max = 1600, quality = 0.75) {
+function compressImage(file, max = 2400, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
@@ -92,12 +93,39 @@ function compressImage(file, max = 1600, quality = 0.75) {
     img.src = url;
   });
 }
+/* Legibility check: resolution, brightness and sharpness (Laplacian variance) of a photo. Returns {ok, problems[]} */
+async function checkReceiptImage(file) {
+  if (!file || !file.type.startsWith('image/') || file.type === 'image/heic') return { ok: true, problems: [] };
+  return new Promise(resolve => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const problems = [], long = Math.max(img.width, img.height);
+      if (long < 1000) problems.push('The photo is low resolution — move closer or use a higher camera setting.');
+      const k = Math.min(1, 700 / long), w = Math.max(8, Math.round(img.width * k)), h = Math.max(8, Math.round(img.height * k));
+      const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
+      try {
+        const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h); let sum = 0;
+        for (let i = 0; i < w * h; i++) { g[i] = .299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2]; sum += g[i]; }
+        const mean = sum / (w * h); let lv = 0, n = 0;
+        for (let yy = 1; yy < h - 1; yy++) for (let xx = 1; xx < w - 1; xx++) { const i = yy * w + xx, l = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w]; lv += l * l; n++; }
+        lv /= n;
+        if (mean < 55) problems.push('The photo is very dark — use better light.');
+        if (lv < 40) problems.push('The photo looks blurry — hold steady and retake.');
+      } catch (e) { /* cannot analyse; skip */ }
+      resolve({ ok: !problems.length, problems });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve({ ok: true, problems: [] }); };
+    img.src = url;
+  });
+}
+const sha256Hex = async blob => [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))].map(b => b.toString(16).padStart(2, '0')).join('');
 async function uploadReceipt(file, prefix = '') {
   let body = file, ext = (file.name.split('.').pop() || 'bin').toLowerCase(), type = file.type;
   if (file.type.startsWith('image/') && file.type !== 'image/heic') { body = await compressImage(file); ext = 'jpg'; type = 'image/jpeg'; }
   const path = `${App.ws.id}/${App.user.id}/${prefix}${uuid()}.${ext}`;
   const { error } = await sb.storage.from('exp-receipts').upload(path, body, { contentType: type, upsert: false });
   if (error) throw error;
+  try { uploadReceipt.last = { path, hash: await sha256Hex(body) }; } catch (e) { uploadReceipt.last = { path, hash: null }; }
   return path;
 }
 const _signed = {};
@@ -108,12 +136,12 @@ async function signedUrl(path) {
   _signed[path] = { url: data.signedUrl, exp: Date.now() + 3000 * 1000 };
   return data.signedUrl;
 }
-async function viewFile(path) {
+async function viewFile(path, meta = '') {
   try {
     const url = await signedUrl(path);
     modal(`<div class="row between"><h2>Attachment</h2><button class="btn ghost sm" data-act="close">Close</button></div>
       ${/\.pdf$/i.test(path) ? `<iframe src="${url}" style="width:100%;height:70vh;border:0"></iframe>` : `<img src="${url}" style="max-width:100%;border-radius:10px">`}
-      <p style="margin-top:10px"><a href="${url}" target="_blank" rel="noopener">Open in new tab</a></p>`, { wide: true });
+      <p style="margin-top:10px"><a href="${url}" target="_blank" rel="noopener">Open in new tab</a></p>${meta}`, { wide: true });
   } catch (e) { fail(e); }
 }
 

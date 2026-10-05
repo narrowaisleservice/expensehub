@@ -53,7 +53,8 @@ VIEWS.settings = async el => {
     <div class="two"><div><label>Workspace name</label><input id="w_name" value="${esc(w.name)}"></div><div><label>Currency</label><select id="w_cur">${[...new Set([w.currency, ...CURRENCIES])].map(c => `<option ${w.currency === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
     <div class="grid3"><div><label>Mileage rate (per mile)</label><input id="w_mr" type="number" step="0.001" value="${w.mileage_rate}"></div><div><label>Rate after threshold</label><input id="w_mr2" type="number" step="0.001" value="${w.mileage_rate_after}"></div><div><label>Threshold (miles / tax year)</label><input id="w_mt" type="number" value="${w.mileage_threshold}"></div></div>
     <div class="grid3"><div><label>Receipt required above</label><input id="w_rc" type="number" step="0.01" value="${w.receipt_required_over}"></div><div><label>Flag expenses over</label><input id="w_fl" type="number" step="1" value="${w.flag_over}"></div><div><label>Default VAT %</label><input id="w_vat" type="number" step="0.5" value="${w.vat_rate}"></div></div>
-    <div class="two"><div><label>Invoice prefix</label><input id="w_ip" value="${esc(w.invoice_prefix)}"></div><div></div></div>
+    <div class="two"><div><label>Invoice prefix</label><input id="w_ip" value="${esc(w.invoice_prefix)}"></div><div><label>Company VAT number</label><input id="w_vatno" value="${esc(w.vat_number || '')}" placeholder="GB123456789"></div></div>
+    <div class="two"><div><label>Keep records for (years, minimum 6)</label><input id="w_ret" type="number" min="6" step="1" value="${w.retention_years || 6}"></div><div></div></div>
     <label>Company details (shown on invoices)</label><textarea id="w_co" rows="3" placeholder="Company name, address, VAT number, bank details">${esc(w.company_details || '')}</textarea>
     <button class="btn" style="margin-top:12px" data-act="saveWs">Save policy</button></div>` : ''}
   ${fin ? `<div class="card" style="margin-top:14px"><div class="row between"><h3>Categories</h3><button class="btn sm" data-act="newCat">+ Add</button></div>
@@ -61,7 +62,14 @@ VIEWS.settings = async el => {
   <div class="card" style="margin-top:14px"><div class="row between"><h3>Auto-categorise rules</h3><button class="btn sm" data-act="newRule">+ Add</button></div>
     <p class="sub">When a merchant name contains the text, the category is filled in automatically (and the receipt scanner uses it too).</p>
     <table><tr><th>Merchant contains</th><th>Category</th><th>Billable</th><th></th></tr>${App.rules.map(r => `<tr><td>${esc(r.match_text)}</td><td>${esc(catName(r.category_id))}</td><td>${r.billable ? 'Yes' : ''}</td><td><a href="#" data-act="delRule" data-id="${r.id}">delete</a></td></tr>`).join('') || '<tr><td colspan="4" class="sub">No rules</td></tr>'}</table></div>` : ''}
-  ${ad ? `<div class="card" style="margin-top:14px"><h3>Danger zone</h3><p class="sub">Deleting the workspace permanently removes all expenses, reports, bills, invoices and receipts records.</p><button class="btn danger" data-act="delWs">Delete workspace</button></div>` : ''}`;
+  <div class="card" style="margin-top:14px"><h3>Records &amp; privacy</h3>
+    <ul class="sub" style="margin:6px 0 10px 18px;line-height:1.6">
+      <li>Receipt images are stored privately, time-stamped, fingerprinted (SHA-256) and cannot be edited or replaced once a report is submitted.</li>
+      <li>Submitted and approved expenses, reports, bills and invoices cannot be deleted for <b>${w.retention_years || 6} years</b> (HMRC requires business records to be kept for at least 6 years).</li>
+      <li>Every change after submission is written to the audit log.</li>
+    </ul>
+    <div class="row wrap gap"><button class="btn ghost" data-act="exportMine">Download my data</button><button class="btn ghost" data-act="privacyInfo">Privacy &amp; records notice</button></div></div>
+  ${ad ? `<div class="card" style="margin-top:14px"><h3>Danger zone</h3><p class="sub">A workspace can only be deleted once it holds no submitted, approved or paid records inside the retention period. Export your records first.</p><button class="btn danger" data-act="delWs">Delete workspace</button></div>` : ''}`;
   const th = $('#p_theme'); th.value = localStorage.getItem('eh_theme') || 'auto'; th.onchange = e => setTheme(e.target.value);
 };
 ACTIONS.saveProfile = wrap(async () => {
@@ -69,9 +77,20 @@ ACTIONS.saveProfile = wrap(async () => {
   await reloadWorkspace(); renderShell(); toast('Profile saved');
 });
 ACTIONS.changePw = () => showSetPassword();
+ACTIONS.exportMine = wrap(async () => {
+  const rows = await q(sb.from('exp_expenses').select('*').eq('workspace_id', App.ws.id).eq('user_id', App.user.id).order('expense_date'));
+  download(`my-expenses-${today()}.csv`, toCSV([['Date', 'Type', 'Merchant', 'Amount', 'Currency', 'VAT', 'Supplier VAT no.', 'Notes', 'Receipt stored (UTC)', 'Receipt SHA-256'], ...rows.map(e => [e.expense_date, e.kind, e.merchant, e.amount, e.currency, e.vat_amount ?? '', e.supplier_vat_no || '', e.notes, e.receipt_uploaded_at || '', e.receipt_hash || ''])]));
+});
+ACTIONS.privacyInfo = () => modal(`<div class="row between"><h2>Privacy &amp; records notice</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  <p><b>What is held:</b> your name, work email, expense details (merchant, date, amount, VAT, notes, journeys) and photos of receipts you upload.</p>
+  <p><b>Why:</b> to reimburse you, keep the accounting records the company must keep by law, and support VAT and tax returns.</p>
+  <p><b>Who sees it:</b> you, your approvers and the finance team of your workspace. Data is held in the company's own database account and protected by access rules.</p>
+  <p><b>How long:</b> at least ${App.ws.retention_years || 6} years (HMRC business record-keeping). Submitted records cannot be deleted before then, even on request; after that they can be removed.</p>
+  <p><b>Your rights (UK GDPR):</b> you can download your data from Settings and ask your company's data controller to correct or erase data that is no longer needed.</p>
+  <p class="sub">Digital receipt copies: HMRC accepts scanned or photographed records if they are a clear, complete and unaltered copy and are kept for the required period. Check with your accountant if unsure.</p>`);
 ACTIONS.saveWs = wrap(async () => {
   const n = id => parseFloat($(id).value);
-  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, company_details: $('#w_co').value || null }).eq('id', App.ws.id));
+  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, vat_number: $('#w_vatno').value.trim() || null, retention_years: Math.max(6, parseInt($('#w_ret').value) || 6), company_details: $('#w_co').value || null }).eq('id', App.ws.id));
   await reloadWorkspace(); renderShell(); toast('Policy saved');
 });
 ACTIONS.newCat = () => catForm();
