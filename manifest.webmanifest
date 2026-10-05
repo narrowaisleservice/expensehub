@@ -1,0 +1,11 @@
+{
+  "name": "ExpenseHub",
+  "short_name": "ExpenseHub",
+  "description": "Expenses, receipts, mileage, approvals, bills and invoices.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1f1c",
+  "theme_color": "#0b1f1c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

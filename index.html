@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ExpenseHub</title>
+<meta name="description" content="Expenses, receipts, mileage, approvals, bills and invoices in one place.">
+<meta name="theme-color" content="#0b1f1c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Sign in / sign up -->
+<div id="auth" hidden>
+  <div class="authcard">
+    <div class="logo big"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <p class="sub center">Receipts, mileage, approvals, bills and invoices — one place.</p>
+    <div class="seg" id="authTabs"><button data-at="in" class="on">Sign in</button><button data-at="up">Create account</button></div>
+    <form id="authForm" autocomplete="on">
+      <label>Email</label><input id="a_email" type="email" required autocomplete="email">
+      <label>Password</label><input id="a_pw" type="password" required minlength="8" autocomplete="current-password">
+      <div id="a_msg" class="note" hidden></div>
+      <button class="btn block" id="a_go" type="submit">Sign in</button>
+      <p class="center sub"><a href="#" id="a_forgot">Forgotten your password?</a></p>
+    </form>
+  </div>
+</div>
+
+<!-- Onboarding: first workspace -->
+<div id="onboard" hidden>
+  <div class="authcard">
+    <div class="logo big"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <h2>Set up your workspace</h2>
+    <p class="sub">A workspace is your company or team. You will be its admin and can invite colleagues afterwards. If you were invited, sign out and sign in again with the invited email address.</p>
+    <label>Workspace name</label><input id="o_ws" placeholder="e.g. Acme Ltd">
+    <label>Your name</label><input id="o_name" placeholder="e.g. Sam Taylor">
+    <button class="btn block" id="o_go" style="margin-top:14px">Create workspace</button>
+    <p class="center sub"><a href="#" id="o_out">Sign out</a></p>
+  </div>
+</div>
+
+<!-- App shell -->
+<div id="app" hidden>
+  <aside id="side">
+    <div class="logo"><span class="mark">E</span> Expense<b>Hub</b></div>
+    <select id="wsswitch" aria-label="Workspace"></select>
+    <nav id="nav"></nav>
+    <div class="who sub" id="whoami"></div>
+  </aside>
+  <div id="scrim"></div>
+  <div class="main">
+    <header class="top">
+      <button class="iconbtn" id="burger" aria-label="Menu">☰</button>
+      <h1 id="title">Dashboard</h1>
+      <span class="grow"></span>
+      <span class="sub" id="wsname"></span>
+      <button class="iconbtn" id="themeBtn" aria-label="Toggle theme">◐</button>
+    </header>
+    <main id="view"></main>
+  </div>
+  <button class="fab" data-act="newExpense" aria-label="New expense">＋</button>
+</div>
+
+<div id="modal"><div class="mc" id="mc"></div></div>
+<div id="dialog"></div>
+<div id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/expenses.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/finance.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
