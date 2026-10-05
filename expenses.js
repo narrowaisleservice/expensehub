@@ -237,30 +237,77 @@ ACTIONS.xView = (t, ev) => {
 ACTIONS.xRemoveFile = () => { readX(); X.file = null; X.receipt_path = null; drawExpenseForm(); };
 ACTIONS.xVat = (t, ev) => { ev.preventDefault(); const a = parseFloat($('#x_amount').value) || 0; $('#x_vat').value = (a - a / 1.2).toFixed(2); };
 ACTIONS.xFx = async (t, ev) => { ev.preventDefault(); const c = $('#x_cur').value; try { $('#x_fx').value = await fxRate(c, App.ws.currency); toast('Rate updated'); } catch (e) { fail(e); } };
+/* ---------- receipt reading (OCR) ---------- */
+const KNOWN_MERCHANTS = ['Tesco', 'Sainsbury', 'Asda', 'Morrisons', 'Aldi', 'Lidl', 'Waitrose', 'Co-op', 'Marks & Spencer', 'Shell', 'BP', 'Esso', 'Texaco', 'Gulf', 'Jet', 'Murco', 'Costa', 'Starbucks', 'Greggs', 'Pret', 'Subway', 'McDonald', 'Burger King', 'KFC', 'Nandos', 'Wetherspoon', 'Premier Inn', 'Travelodge', 'Holiday Inn', 'Ibis', 'Hilton', 'Screwfix', 'Toolstation', 'B&Q', 'Wickes', 'Halfords', 'Argos', 'Amazon', 'Currys', 'Staples', 'WH Smith', 'Boots', 'Euro Car Parks', 'NCP', 'RingGo', 'Welcome Break', 'Moto', 'Roadchef', 'Euro Garages', 'Applegreen', 'Trainline', 'National Express', 'Uber', 'Parkdean'];
+async function prepareForOcr(file) {
+  const img = await new Promise((res, rej) => { const i = new Image(), u = URL.createObjectURL(file); i.onload = () => { URL.revokeObjectURL(u); res(i); }; i.onerror = () => rej(new Error('Could not read that image')); i.src = u; });
+  const k = Math.min(1, 1600 / Math.max(img.width, img.height)), w = Math.round(img.width * k), h = Math.round(img.height * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+  const id = x.getImageData(0, 0, w, h), d = id.data, hist = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) { const g = Math.round(.299 * d[i] + .587 * d[i + 1] + .114 * d[i + 2]); d[i] = g; hist[g]++; }
+  const n = w * h; let lo = 0, hi = 255, acc = 0;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > n * .01) { lo = v; break; } }
+  acc = 0; for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > n * .01) { hi = v; break; } }
+  const span = Math.max(40, hi - lo);
+  for (let i = 0; i < d.length; i += 4) { const g = Math.max(0, Math.min(255, Math.round((d[i] - lo) * 255 / span))); d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = 255; }
+  x.putImageData(id, 0, 0);
+  return new Promise(r => c.toBlob(r, 'image/png'));
+}
+async function ocrReceipt(file) {
+  if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  const blob = await prepareForOcr(file), worker = await Tesseract.createWorker('eng'), texts = [];
+  try {
+    for (const psm of ['6', '4']) { await worker.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1' }); texts.push((await worker.recognize(blob)).data.text); }
+  } finally { worker.terminate(); }
+  return texts;
+}
 ACTIONS.xScan = async () => {
   const out = $('#x_ocr'); out.textContent = 'Reading receipt… (the first scan downloads the reader, ~10s)';
   try {
-    if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
-    const r = await Tesseract.recognize(X.file, 'eng');
-    const p = parseReceipt(r.data.text); readX();
-    if (p.merchant && !X.merchant) X.merchant = p.merchant;
+    const parsed = (await ocrReceipt(X.file)).map(parseReceipt);
+    const p = { ...(parsed.find(r => r.consistent) || parsed.reduce((a, b) => (b.score > a.score ? b : a))) };
+    p.merchant = (parsed.find(r => r.known) || p).merchant || p.merchant; p.date = p.date || parsed.find(r => r.date)?.date; p.currency = p.currency || parsed.find(r => r.currency)?.currency; readX();
+    if (p.merchant) X.merchant = p.merchant;
     if (p.amount) X.amount = p.amount.toFixed(2);
     if (p.date) X.expense_date = p.date;
     if (p.vat) X.vat_amount = p.vat.toFixed(2);
-    const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) X.category_id = rule.category_id;
-    drawExpenseForm(); $('#x_ocr').textContent = `✨ Filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT'].filter(Boolean).join(', ') || 'nothing found'} — please check.`;
+    let note = '';
+    if (p.currency && p.currency !== App.ws.currency) {
+      X.currency = p.currency; try { X.fx_rate = await fxRate(p.currency, App.ws.currency); note = ` Currency read as ${p.currency} (rate ${X.fx_rate}).`; } catch (e) { note = ` Currency looks like ${p.currency} — enter the rate.`; }
+    }
+    const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
+    drawExpenseForm(); $('#x_ocr').textContent = `✨ Filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT'].filter(Boolean).join(', ') || 'nothing found'}.${note} Please check every field against the receipt.`;
     if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
   } catch (e) { out.textContent = ''; fail(e); }
 };
-function parseReceipt(text) {
+function parseReceipt(raw) {
+  const text = raw.replace(/(\d)\s*([.,])\s*(\d{2})(?!\d)/g, '$1$2$3');
   const lines = text.split(/\n/).map(s => s.trim()).filter(Boolean), out = {};
-  out.merchant = (lines.find(l => /[A-Za-z]{3,}/.test(l) && !/^\d/.test(l) && !/receipt|invoice|tel|vat reg|www\./i.test(l)) || '').replace(/[^\w &'.-]/g, '').trim().slice(0, 50);
-  const d = text.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/), d2 = text.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (d) { let [, dd, mm, yy] = d; yy = yy.length === 2 ? '20' + yy : yy; const iso = `${yy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`; if (!isNaN(new Date(iso))) out.date = iso; } else if (d2) out.date = d2[0];
-  const num = s => { const m = s.match(/(\d{1,5}[.,]\d{2})(?!\d)/g); return m ? m.map(x => parseFloat(x.replace(',', '.'))) : []; };
-  const tl = lines.filter(l => /total|amount due|balance due|to pay|card payment|sale/i.test(l) && !/sub ?total|vat/i.test(l)).flatMap(num);
-  out.amount = tl.length ? Math.max(...tl) : Math.max(0, ...num(text)) || null;
-  const vl = lines.filter(l => /vat/i.test(l)).flatMap(num); if (vl.length) out.vat = Math.min(...vl.filter(v => !out.amount || v < out.amount));
+  const num = s => { const m = s.replace(/(\d),(\d{2})(?!\d)/g, '$1.$2').match(/\d{1,5}\.\d{2}(?!\d)/g); return m ? m.map(parseFloat) : []; };
+  /* merchant: known names / the user's own merchants / first sensible line */
+  const mine = [...new Set([...EX.rows.map(r => r.merchant), ...App.rules.map(r => r.match_text)].filter(m => m && m.length > 2))];
+  const lc = text.toLowerCase(), hit = [...KNOWN_MERCHANTS, ...mine].find(m => lc.includes(m.toLowerCase()));
+  if (hit) out.known = true;
+  if (hit) out.merchant = mine.find(m => m.toLowerCase() === hit.toLowerCase()) || hit;
+  else out.merchant = (lines.find(l => { const L = (l.match(/[A-Za-z]/g) || []).length; return L >= 3 && L / l.length > .6 && !/^\d/.test(l) && !/receipt|invoice|tel|vat reg|www\.|^(date|store|register|total|tax)/i.test(l); }) || '').replace(/[^\w &'.-]/g, '').trim().slice(0, 50);
+  /* date: day-first (UK); swap if the "month" is > 12; also 25 Nov 2025 / Nov 25, 2025 */
+  const MON = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' '), iso = (y, m, d) => { y = +y; if (y < 100) y += 2000; const t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === +d && y >= 2000 && t.getTime() <= Date.now() + 864e5 ? `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null; };
+  let m;
+  if ((m = text.match(/(\d{4})-(\d{2})-(\d{2})/))) out.date = iso(m[1], +m[2], +m[3]);
+  if (!out.date && (m = text.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) { let a = +m[1], b = +m[2]; out.date = iso(m[3], b, a) || iso(m[3], a, b); }
+  if (!out.date && (m = text.match(/(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3})[a-z]*\.?,?\s+(\d{2,4})/)) && MON.includes(m[2].toLowerCase())) out.date = iso(m[3], MON.indexOf(m[2].toLowerCase()) + 1, +m[1]);
+  if (!out.date && (m = text.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})/)) && MON.includes(m[1].toLowerCase())) out.date = iso(m[3], MON.indexOf(m[1].toLowerCase()) + 1, +m[2]);
+  /* amounts: total line, cross-checked against subtotal + tax */
+  const isSub = l => /sub ?-?tota/i.test(l), tl = lines.filter(l => /tota|amount due|balance due|to pay|card payment|amount paid|\bsale\b/i.test(l) && !isSub(l) && !/vat|tax/i.test(l.replace(/total/i, ''))).flatMap(num);
+  const sub = lines.filter(isSub).flatMap(num), vl = lines.filter(l => /\b(vat|tax)\b/i.test(l) && !/tota/i.test(l) && !/reg|no\.?\s*\d|number/i.test(l)).flatMap(num).filter(v => v > 0);
+  const vat = vl.length ? Math.min(...vl) : null, calc = sub.length && vat ? Math.round((Math.max(...sub) + vat) * 100) / 100 : null;
+  const near = (a, b) => Math.abs(a - b) < 0.015;
+  if (calc && tl.some(t => near(t, calc))) { out.amount = calc; out.consistent = true; }
+  else if (calc) { out.amount = calc; out.consistent = true; }
+  else out.amount = tl.length ? Math.max(...tl) : Math.max(0, ...num(text)) || null;
+  if (vat && (!out.amount || vat < out.amount)) out.vat = vat;
+  out.currency = /£/.test(text) ? null : /\$/.test(text) && !/vat/i.test(text) ? 'USD' : /€/.test(text) ? 'EUR' : null;
+  out.score = ['merchant', 'amount', 'date', 'vat'].filter(k => out[k]).length + (out.consistent ? 5 : 0);
   return out;
 }
 ACTIONS.xSave = wrap(async () => {
