@@ -2,7 +2,7 @@
 const EX = { rows: [], reps: {}, trips: [], sel: new Set(), f: { q: '', status: '', cat: '', who: '', from: '', to: '', flagged: false } };
 
 const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.appendChild(s); });
-const expStatus = e => e.report_id ? (EX.reps[e.report_id]?.status || 'draft') : 'unreported';
+const expStatus = e => e.needs_review ? 'to check' : e.report_id ? (EX.reps[e.report_id]?.status || 'draft') : 'unreported';
 const canEditExpense = e => !e.id || ((e.user_id === App.user.id && ['unreported', 'draft', 'rejected'].includes(expStatus(e))) || isFinance());
 
 async function fetchExpenses(opts = {}) {
@@ -23,7 +23,7 @@ async function fetchExpenses(opts = {}) {
 /* ---------- list view ---------- */
 VIEWS.expenses = async el => {
   await fetchExpenses(); await OFF.refresh();
-  try { EX.trips = await q(sb.from('exp_trips').select('id,name,status,user_id').eq('workspace_id', App.ws.id).order('start_date', { ascending: false })); } catch (e) { if (!isNetErr(e)) throw e; EX.trips = EX.trips || []; }
+  try { EX.trips = await q(sb.from('exp_trips').select('*').eq('workspace_id', App.ws.id).order('start_date', { ascending: false })); } catch (e) { if (!isNetErr(e)) throw e; EX.trips = EX.trips || []; }
   el.innerHTML = `${EX.stale ? '<div class="note" style="margin-bottom:10px">Showing the list as it was when you last had a signal.</div>' : ''}${OFF.pendingHTML()}
   <div class="toolbar">
     <input id="f_q" placeholder="Search merchant, notes, customer…" value="${esc(EX.f.q)}">
@@ -39,7 +39,7 @@ VIEWS.expenses = async el => {
     <button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button>
     <button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button>
     <span class="grow"></span>
-    <select id="exp_fmt" title="Export format"><option value="generic">Export: CSV</option><option value="xero">Export: Xero</option><option value="quickbooks">Export: QuickBooks</option></select>
+    <select id="exp_fmt" title="Export format"><option value="xlsx">Export: Excel</option><option value="zip">Export: Excel + receipts (ZIP)</option><option value="generic">Export: CSV</option></select>
     <button class="btn ghost" data-act="exportExp">Export</button>
   </div>
   <div id="bulk" class="bulk" hidden></div>
@@ -120,7 +120,7 @@ function expenseRows(list, fmt) {
     ...list.map(e => [e.expense_date, e.merchant, e.kind, catName(e.category_id), gl(e.category_id), e.currency, e.amount, e.fx_rate, e.amount_base, e.vat_amount ?? '', e.payment_method, e.billable ? 'Yes' : 'No', e.customer, EX.trips.find(t => t.id === e.trip_id)?.name || '', memberName(e.user_id), expStatus(e), EX.reps[e.report_id]?.name || '', e.miles ?? '', e.from_loc, e.to_loc, (e.flags || []).join('|'), e.notes, e.supplier_vat_no || '', e.receipt_uploaded_at || '', e.receipt_hash || '', e.receipt_path || ''])];
 }
 ACTIONS.exportExp = () => {
-  const fmt = $('#exp_fmt').value; download(`expenses-${fmt}-${today()}.csv`, toCSV(expenseRows(filteredExpenses(), fmt)));
+  const fmt = $('#exp_fmt').value; if (fmt === 'xlsx' || fmt === 'zip') { const l = filteredExpenses(); return exportPack(l, rangeLabel(l), fmt === 'zip'); } download(`expenses-${fmt}-${today()}.csv`, toCSV(expenseRows(filteredExpenses(), fmt)));
 };
 
 /* ---------- expense form ---------- */
@@ -163,6 +163,7 @@ function drawExpenseForm() {
   const foreign = e.currency !== App.ws.currency;
   modal(`<div class="row between"><h2>${e.id ? 'Expense' : 'New expense'} ${e.id ? pill(expStatus(e)) : ''}</h2><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
   ${e.id && e.user_id !== App.user.id ? `<p class="sub">Submitted by ${esc(memberName(e.user_id))}</p>` : ''}
+  ${e.needs_review ? '<div class="note">This receipt came in by email. Check every detail against it, then Save.</div>' : ''}
   ${rep?.status === 'rejected' ? '<div class="note">This report was rejected — fix the expense and resubmit.</div>' : ''}
   ${(e.flags || []).length ? `<div class="note">${flagHTML(e.flags)}</div>` : ''}
   <div class="seg">${[['expense', 'Expense'], ['mileage', 'Mileage'], ['per_diem', 'Per diem']].map(([k, n]) => `<button data-act="xKind" data-v="${k}" class="${e.kind === k ? 'on' : ''}" ${e.id ? 'disabled' : ''}>${n}</button>`).join('')}</div>
@@ -232,6 +233,9 @@ function updateHints() {
     if (m && EX.rows.some(r => r.id !== X.id && r.kind === 'expense' && (r.merchant || '').toLowerCase() === m && r.expense_date === date && +r.amount === parseFloat(v('#x_amount')))) h.push('This looks like a duplicate of an expense you already have.');
   }
   if (k === 'mileage' && (v('#x_from').trim() === '' || v('#x_to').trim() === '' || !v('#x_notes').trim())) h.push('Mileage needs a start, an end and the business purpose (in Notes).');
+  if (c?.policy_note) h.push('Policy: ' + c.policy_note);
+  const tr = EX.trips.find(t => t.id === v('#x_trip'));
+  if (tr?.budget) { const spent = sum(EX.rows.filter(r => r.trip_id === tr.id && r.id !== X.id), r => r.amount_base) + amt; if (spent > tr.budget) h.push(`This trip's budget is ${money(tr.budget)}; with this expense it reaches ${money(spent)}.`); }
   if (date && date > today()) h.push('The date is in the future.');
   else if (date && date < isoDate(new Date(Date.now() - 60 * 864e5))) h.push('This is more than 60 days old — it will be flagged.');
   box.innerHTML = h.length ? `<div class="note" style="text-align:left;margin-top:10px">${h.map(x => `<div>${ic('warn', 14)} ${esc(x)}</div>`).join('')}</div>` : '';
@@ -352,7 +356,7 @@ ACTIONS.xScan = async () => {
   if (!navigator.onLine && !window.Tesseract) { out.textContent = 'Offline — your photo is kept on this device and will be read automatically when you are back online. You can also type the details in now.'; return; }
   out.textContent = 'Reading receipt…';
   try {
-    const p = await readReceipt(X.file); readX();
+    const p = await readReceipt(X._readFile || X.file); readX();
     if (!p) { out.textContent = 'This file type cannot be read automatically — enter the details by hand.'; return; }
     if (p.svat) X.supplier_vat_no = p.svat;
     if (p.catId && !X.category_id) X.category_id = p.catId;
@@ -503,6 +507,7 @@ ACTIONS.xSave = wrap(async () => {
     category_id: e.category_id || null, notes: e.notes, billable: e.billable, customer: e.billable ? e.customer : null, payment_method: e.payment_method,
     miles: e.kind === 'mileage' ? e.miles : null, from_loc: e.from_loc || null, to_loc: e.to_loc || null,
     vat_amount: e.vat_amount === '' ? null : parseFloat(e.vat_amount), trip_id: e.trip_id || null, supplier_vat_no: (e.supplier_vat_no || '').trim() || null,
+    ...(e.needs_review ? { needs_review: false } : {}),
     receipt_check: e.file ? (e.receipt_check || 'ok') : (e.receipt_path ? e.receipt_check || null : null)
   };
   const nid = uuid();

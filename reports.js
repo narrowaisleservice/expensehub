@@ -55,7 +55,7 @@ async function openReport(id) {
     ${canDecide ? (App.ws.approval_threshold && App.me.role === 'approver' && sum(items, e => e.amount_base) > App.ws.approval_threshold ? `<div class="note">This report is over ${money(App.ws.approval_threshold)}, so it needs approval from Finance or an Admin.</div>` : '<button class="btn ok" data-act="approveReport">Approve</button>') + '<button class="btn ghost" data-act="rejectReport">Reject…</button>' : ''}
     ${isFinance() && st === 'approved' ? '<button class="btn ok" data-act="payReport">Mark reimbursed</button>' : ''}
     <button class="btn ghost" data-act="printReport">Print / PDF</button>
-    <select id="rp_fmt"><option value="generic">CSV</option><option value="xero">Xero</option><option value="quickbooks">QuickBooks</option></select><button class="btn ghost" data-act="exportReport">Export</button>
+    <select id="rp_fmt"><option value="xlsx">Excel</option><option value="zip">Excel + receipts (ZIP)</option><option value="generic">CSV</option></select><button class="btn ghost" data-act="exportReport">Export</button>
     ${mine && ['draft', 'rejected'].includes(st) ? '<button class="btn ghost danger-t" data-act="deleteReport" style="margin-left:auto">Delete</button>' : ''}
   </div>
   <div class="no-print"><hr><h3>Chat</h3><div id="r_chat" class="chat"></div><div class="row gap" style="margin-top:8px"><input id="r_msg" placeholder="Message about this report…"><button class="btn sm" data-act="xSend">Send</button></div></div>`, { wide: true });
@@ -75,7 +75,7 @@ ACTIONS.approveReport = () => setReport({ status: 'approved' }, 'Approved');
 ACTIONS.rejectReport = async () => { const why = await askText('Reject report', 'Reason (the employee will see this)', 'e.g. Missing receipt for the hotel', 'Reject'); if (why) await setReport({ status: 'rejected', reject_reason: why }, 'Rejected'); };
 ACTIONS.payReport = async () => { const ref = await askText('Mark as reimbursed', 'Payment reference (optional)', 'e.g. BACS 05/10', 'Mark paid', true); if (ref !== null) await setReport({ status: 'reimbursed', reimburse_ref: ref }, 'Marked reimbursed'); };
 ACTIONS.deleteReport = async () => { if (!await confirmBox('Delete this report? The expenses stay and go back to unreported.', 'Delete', true)) return; await q(sb.from('exp_reports').delete().eq('id', CUR.r.id)); closeModal(); toast('Deleted'); rerender(); };
-ACTIONS.exportReport = () => { const f = $('#rp_fmt').value; EX.trips = EX.trips || []; download(`report-${CUR.r.name.replace(/\W+/g, '-')}-${f}.csv`, toCSV(expenseRows(CUR.items, f))); };
+ACTIONS.exportReport = () => { const f = $('#rp_fmt').value; if (f === 'xlsx' || f === 'zip') return exportPack(CUR.items, `Report: ${CUR.r.name}`, f === 'zip'); EX.trips = EX.trips || []; download(`report-${CUR.r.name.replace(/\W+/g, '-')}-${f}.csv`, toCSV(expenseRows(CUR.items, f))); };
 ACTIONS.printReport = async () => {
   const box = $('#rpt-receipts'); box.innerHTML = '';
   const withR = CUR.items.filter(e => e.receipt_path && !/\.pdf$/i.test(e.receipt_path));
@@ -133,7 +133,8 @@ VIEWS.trips = async el => {
   el.innerHTML = `<div class="row wrap gap" style="margin-bottom:12px"><button class="btn" data-act="newTrip">+ New trip</button><span class="sub">Group flights, hotels, mileage and meals per trip. Pick the trip on each expense.</span></div>
   <div class="card nopad">${trips.length ? trips.map(t => {
     const its = exps.filter(e => e.trip_id === t.id);
-    return `<div class="item" data-act="openTrip" data-id="${t.id}"><div class="thumb" style="--c:#3e4d9c">${ic('trip', 20)}</div><div class="grow"><b>${esc(t.name)}</b><span class="sub">${esc(t.destination || '')} ${t.start_date ? '· ' + dfmt(t.start_date) : ''}${t.end_date ? ' – ' + dfmt(t.end_date) : ''}${isManager() ? ' · ' + esc(memberName(t.user_id)) : ''}</span></div>
+    const spentT = sum(its, e => e.amount_base);
+    return `<div class="item" data-act="openTrip" data-id="${t.id}"><div class="thumb" style="--c:#3e4d9c">${ic('trip', 20)}</div><div class="grow"><b>${esc(t.name)}</b>${t.budget ? `<span class="sub">Budget ${money(t.budget)}${spentT > t.budget ? ' · <span class="flag" style="margin:0">over by ' + money(spentT - t.budget) + '</span>' : ' · ' + money(t.budget - spentT) + ' left'}</span>` : ''}<span class="sub">${esc(t.destination || '')} ${t.start_date ? '· ' + dfmt(t.start_date) : ''}${t.end_date ? ' – ' + dfmt(t.end_date) : ''}${isManager() ? ' · ' + esc(memberName(t.user_id)) : ''}</span></div>
       <div class="right"><div class="amt">${money(sum(its, e => e.amount_base))}</div>${pill(t.status)}</div></div>`;
   }).join('') : '<div class="empty">No trips yet.</div>'}</div>`;
 };
@@ -144,7 +145,7 @@ ACTIONS.openTrip = wrap(async t => {
   const byCat = {}; items.forEach(e => byCat[catName(e.category_id)] = (byCat[catName(e.category_id)] || 0) + +e.amount_base);
   const mine = trip.user_id === App.user.id || isManager();
   modal(`<div class="row between"><div><h2>${esc(trip.name)} ${pill(trip.status)}</h2><p class="sub">${esc(trip.destination || '')} ${trip.start_date ? '· ' + dfmt(trip.start_date) : ''}${trip.end_date ? ' – ' + dfmt(trip.end_date) : ''}</p>${trip.purpose ? `<p>${esc(trip.purpose)}</p>` : ''}</div><button class="btn ghost sm" data-act="close">${ic('x', 14)}</button></div>
-  <div class="grid3"><div class="card stat"><small>Total</small><b>${money(sum(items, e => e.amount_base))}</b></div><div class="card stat"><small>Expenses</small><b>${items.length}</b></div><div class="card stat"><small>Mileage</small><b>${sum(items, e => e.miles).toFixed(0)} mi</b></div></div>
+  <div class="grid3"><div class="card stat"><small>Total${trip.budget ? ' of ' + money(trip.budget) : ''}</small><b${trip.budget && sum(items, e => e.amount_base) > trip.budget ? ' style="color:var(--accent)"' : ''}>${money(sum(items, e => e.amount_base))}</b></div><div class="card stat"><small>Expenses</small><b>${items.length}</b></div><div class="card stat"><small>Mileage</small><b>${sum(items, e => e.miles).toFixed(0)} mi</b></div></div>
   <div class="bars">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="b"><span class="n">${esc(k)}</span><span class="t"><i style="width:${v / Math.max(...Object.values(byCat)) * 100}%"></i></span><span class="v">${money(v)}</span></div>`).join('')}</div>
   <div class="card nopad" style="margin-top:12px">${items.length ? items.map(e => `<div class="item" data-act="openTripExp" data-id="${e.id}"><div class="grow"><b>${esc(e.merchant || e.kind)}</b><span class="sub">${dfmt(e.expense_date)} · ${esc(catName(e.category_id))}</span></div><div class="amt">${money(e.amount_base)}</div></div>`).join('') : '<div class="empty">No expenses on this trip yet.</div>'}</div>
   ${mine ? `<div class="row gap wrap" style="margin-top:14px"><button class="btn ghost" data-act="tripEdit" data-id="${trip.id}">Edit</button><button class="btn ghost" data-act="tripToggle" data-id="${trip.id}" data-st="${trip.status}">${trip.status === 'open' ? 'Close trip' : 'Reopen trip'}</button><button class="btn ghost danger-t" data-act="tripDelete" data-id="${trip.id}" style="margin-left:auto">Delete</button></div>` : ''}`, { wide: true });
@@ -156,11 +157,12 @@ function tripForm(tr = {}) {
   modal(`<h2>${tr.id ? 'Edit trip' : 'New trip'}</h2><label>Name</label><input id="t_name" value="${esc(tr.name || '')}" placeholder="e.g. Leeds customer visit" autofocus>
   <label>Destination</label><input id="t_dest" value="${esc(tr.destination || '')}"><div class="two"><div><label>Start</label><input id="t_start" type="date" value="${tr.start_date || ''}"></div><div><label>End</label><input id="t_end" type="date" value="${tr.end_date || ''}"></div></div>
   <label>Purpose</label><textarea id="t_purpose" rows="2">${esc(tr.purpose || '')}</textarea>
+  ${HAS.v8 ? `<label>Budget for the trip (optional)</label><input id="t_budget" type="number" min="0" step="1" value="${tr.budget ?? ''}" placeholder="e.g. 400">` : ''}
   <div class="row end gap" style="margin-top:14px"><button class="btn ghost" data-act="close">Cancel</button><button class="btn" data-act="saveTrip" data-id="${tr.id || ''}">Save</button></div>`);
 }
 ACTIONS.saveTrip = wrap(async t => {
   const name = $('#t_name').value.trim(); if (!name) return toast('Name required', 'err');
-  const p = { name, destination: $('#t_dest').value || null, start_date: $('#t_start').value || null, end_date: $('#t_end').value || null, purpose: $('#t_purpose').value || null };
+  const p = { name, destination: $('#t_dest').value || null, start_date: $('#t_start').value || null, end_date: $('#t_end').value || null, purpose: $('#t_purpose').value || null, ...($('#t_budget') ? { budget: parseFloat($('#t_budget').value) > 0 ? parseFloat($('#t_budget').value) : null } : {}) };
   if (t.dataset.id) await q(sb.from('exp_trips').update(p).eq('id', t.dataset.id)); else await q(sb.from('exp_trips').insert({ ...p, workspace_id: App.ws.id, user_id: App.user.id }));
   closeModal(); toast('Saved'); rerender();
 });

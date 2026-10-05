@@ -30,6 +30,7 @@ VIEWS.dashboard = async el => {
   const mine = EX.rows.filter(e => e.user_id === uid), monthMine = mine.filter(e => e.expense_date >= ms);
   const by = s => mine.filter(e => expStatus(e) === s);
   const old7 = isoDate(new Date(Date.now() - 7 * 864e5)), stale = mine.filter(e => expStatus(e) === 'unreported' && e.expense_date < old7).length;
+  const needRev = mine.filter(e => e.needs_review).length;
   const noRc = mine.filter(e => ['unreported', 'draft', 'rejected'].includes(expStatus(e)) && (e.flags || []).includes('no_receipt')).length;
   const rejected = Object.values(EX.reps).filter(r => r.user_id === uid && r.status === 'rejected').length;
   const limit = App.me.monthly_limit, spent = sum(monthMine, e => e.amount_base);
@@ -63,7 +64,7 @@ VIEWS.dashboard = async el => {
       ${fin ? stat('Invoices outstanding', money(sum(iv, i => i.total)), `${iv.length} sent${overInv.length ? ` · <span class="flag">${overInv.length} overdue</span>` : ''}`, '#/invoices') : ''}</div>`;
   }
   const alerts = [
-    noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', stale ? `${ic('clock', 16)} ${stale} expense(s) have not been put on a report for over a week` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
+    noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', needRev ? `${ic('mail', 16)} <a href="#/inbox">${needRev} emailed receipt(s) to check</a>` : '', stale ? `${ic('clock', 16)} ${stale} expense(s) have not been put on a report for over a week` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `${ic('ban', 16)} You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
   el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
   <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>
@@ -258,10 +259,10 @@ VIEWS.analytics = async el => {
     ${isManager() ? `<select id="a_who"><option value="">Everyone</option>${App.members.map(m => `<option value="${m.user_id}" ${AN.who === m.user_id ? 'selected' : ''}>${esc(m.display_name || m.email)}</option>`).join('')}</select>` : ''}
     <select id="a_bill">${opt([['', 'Billable or not'], ['true', 'Billable only'], ['false', 'Non-billable only']], AN.bill)}</select>
     <select id="a_status">${opt([['', 'Any status'], ...['unreported', 'draft', 'submitted', 'approved', 'rejected', 'reimbursed'].map(s => [s, s])], AN.status)}</select>
-    <button class="btn ghost" data-act="anCsv">Export table</button></div></div>
+    <button class="btn ghost" data-act="anCsv">Export table</button><button class="btn ghost" data-act="anPack">Month-end pack</button></div></div>
   <div class="card">${AN.group === 'month' ? vbars(out.map(o => ({ label: monthLabel(o.label), value: o.value }))) : hbars(out.slice(0, 15), fmt)}</div>
   <div class="card nopad" style="margin-top:12px"><table><tr><th>${AN.group}</th><th class="r">Count</th><th class="r">Total</th><th class="r">Average</th></tr>${out.map(o => `<tr><td>${esc(o.label)}</td><td class="r">${o.count}</td><td class="r">${money(o.sum)}</td><td class="r">${money(o.avg)}</td></tr>`).join('')}</table></div>`;
-  AN.out = out;
+  AN.out = out; AN.rows = rows;
   const bind = (id, k) => { const n = $(id); if (n) n.onchange = e => { AN[k] = e.target.value; rerender(); }; };
   bind('#a_preset', 'preset'); bind('#a_group', 'group'); bind('#a_metric', 'metric'); bind('#a_cat', 'cat'); bind('#a_who', 'who'); bind('#a_bill', 'bill'); bind('#a_status', 'status'); bind('#a_from', 'from'); bind('#a_to', 'to');
 };

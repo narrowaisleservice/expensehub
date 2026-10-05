@@ -46,6 +46,7 @@ VIEWS.settings = async el => {
   el.innerHTML = `
   <div class="grid2"><div class="card"><h3>My profile</h3>
     <label>Display name</label><input id="p_name" value="${esc(me.display_name || '')}"><label>Department</label><input id="p_dept" value="${esc(me.department || '')}">
+    ${HAS.v8 ? `<label class="chk" style="margin-top:10px"><input type="checkbox" id="p_mail" ${me.email_alerts !== false ? 'checked' : ''}> Email me when something needs me (approvals, rejections, payments, weekly reminders)</label>` : ''}
     <div class="row gap" style="margin-top:12px"><button class="btn" data-act="saveProfile">Save</button><button class="btn ghost" data-act="changePw">Change password</button></div></div>
   <div class="card"><h3>Appearance</h3><label>Theme</label><select id="p_theme"><option value="auto">Match my device</option><option value="light">Light</option><option value="dark">Dark</option></select>
     <p class="sub" style="margin-top:10px">Signed in as ${esc(App.user.email)}</p><button class="btn ghost" data-act="signOut" style="margin-top:6px">Sign out</button></div></div>
@@ -55,6 +56,7 @@ VIEWS.settings = async el => {
     <div class="grid3"><div><label>Receipt required above</label><input id="w_rc" type="number" step="0.01" value="${w.receipt_required_over}"></div><div><label>Flag expenses over</label><input id="w_fl" type="number" step="1" value="${w.flag_over}"></div><div><label>Default VAT %</label><input id="w_vat" type="number" step="0.5" value="${w.vat_rate}"></div></div>
     <div class="two"><div><label>Invoice prefix</label><input id="w_ip" value="${esc(w.invoice_prefix)}"></div><div><label>Company VAT number</label><input id="w_vatno" value="${esc(w.vat_number || '')}" placeholder="GB123456789"></div></div>
     <div class="two"><div><label>Keep records for (years, minimum 6)</label><input id="w_ret" type="number" min="6" step="1" value="${w.retention_years || 6}"></div><div><label>Receipt reading</label><select id="w_ai"><option value="1" ${w.ai_receipts !== false ? 'selected' : ''}>AI (receipt photos are sent to Anthropic)</option><option value="0" ${w.ai_receipts === false ? 'selected' : ''}>On this device only</option></select></div></div>
+    ${HAS.v8 ? `<label>Receipt email address (where staff forward receipts)</label><input id="w_inbox" value="${esc(w.inbox_email || '')}" placeholder="receipts@yourcompany.co.uk">` : ''}
     ${'ai_daily_limit' in w ? `<div class="two"><div><label>AI receipt reads per day (whole workspace)</label><input id="w_ailim" type="number" min="0" step="10" value="${w.ai_daily_limit ?? 300}"></div><div><label>Approvers can approve reports up to (blank = no limit)</label><input id="w_thr" type="number" min="0" step="50" value="${w.approval_threshold ?? ''}" placeholder="e.g. 500"></div></div>
     <p class="sub">Above that amount a report needs approval from Finance or an Admin. After the daily AI limit, receipts are read on the device instead.</p>` : ''}
     <label>Company details (shown on invoices)</label><textarea id="w_co" rows="3" placeholder="Company name, address, VAT number, bank details">${esc(w.company_details || '')}</textarea>
@@ -79,7 +81,7 @@ VIEWS.settings = async el => {
   const th = $('#p_theme'); th.value = localStorage.getItem('eh_theme') || 'auto'; th.onchange = e => setTheme(e.target.value);
 };
 ACTIONS.saveProfile = wrap(async () => {
-  await q(sb.from('exp_members').update({ display_name: $('#p_name').value.trim() || null, department: $('#p_dept').value.trim() || null }).eq('workspace_id', App.ws.id).eq('user_id', App.user.id));
+  await q(sb.from('exp_members').update({ display_name: $('#p_name').value.trim() || null, department: $('#p_dept').value.trim() || null, ...($('#p_mail') ? { email_alerts: $('#p_mail').checked } : {}) }).eq('workspace_id', App.ws.id).eq('user_id', App.user.id));
   await reloadWorkspace(); renderShell(); toast('Profile saved');
 });
 ACTIONS.changePw = () => showSetPassword();
@@ -97,7 +99,7 @@ ACTIONS.privacyInfo = () => modal(`<div class="row between"><h2>Privacy &amp; re
   <p class="sub">Digital receipt copies: HMRC accepts scanned or photographed records if they are a clear, complete and unaltered copy and are kept for the required period. Check with your accountant if unsure.</p>`);
 ACTIONS.saveWs = wrap(async () => {
   const n = id => parseFloat($(id).value);
-  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, vat_number: $('#w_vatno').value.trim() || null, retention_years: Math.max(6, parseInt($('#w_ret').value) || 6), company_details: $('#w_co').value || null, ...('ai_receipts' in App.ws ? { ai_receipts: $('#w_ai').value === '1' } : {}), ...('ai_daily_limit' in App.ws ? { ai_daily_limit: Math.max(0, parseInt($('#w_ailim').value) || 0), approval_threshold: parseFloat($('#w_thr').value) > 0 ? parseFloat($('#w_thr').value) : null } : {}) }).eq('id', App.ws.id));
+  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, vat_number: $('#w_vatno').value.trim() || null, retention_years: Math.max(6, parseInt($('#w_ret').value) || 6), company_details: $('#w_co').value || null, ...('ai_receipts' in App.ws ? { ai_receipts: $('#w_ai').value === '1' } : {}), ...($('#w_inbox') ? { inbox_email: $('#w_inbox').value.trim() || null } : {}), ...('ai_daily_limit' in App.ws ? { ai_daily_limit: Math.max(0, parseInt($('#w_ailim').value) || 0), approval_threshold: parseFloat($('#w_thr').value) > 0 ? parseFloat($('#w_thr').value) : null } : {}) }).eq('id', App.ws.id));
   await reloadWorkspace(); renderShell(); toast('Policy saved');
 });
 ACTIONS.newCat = () => catForm();
@@ -106,11 +108,12 @@ function catForm(c = {}) {
   modal(`<h2>${c.id ? 'Edit' : 'New'} category</h2><label>Name</label><input id="c_name" value="${esc(c.name || '')}" autofocus>
   <div class="two"><div><label>GL / account code</label><input id="c_gl" value="${esc(c.gl_code || '')}"></div><div><label>Colour</label><input id="c_col" type="color" value="${c.color || '#6b6b73'}" style="height:42px;padding:4px"></div></div>
   <div class="two"><div><label>Max per item (flag above)</label><input id="c_lim" type="number" step="1" value="${c.per_item_limit ?? ''}"></div><div><label>Receipt</label><select id="c_rc"><option value="1" ${c.receipt_required !== false ? 'selected' : ''}>Required</option><option value="0" ${c.receipt_required === false ? 'selected' : ''}>Optional</option></select></div></div>
+  ${HAS.v8 ? `<label>Guidance shown when this category is picked (optional)</label><input id="c_note" value="${esc(c.policy_note || '')}" placeholder="e.g. Hotels up to £120 a night. No minibar.">` : ''}
   <label class="chk"><input type="checkbox" id="c_mile" ${c.is_mileage ? 'checked' : ''}> This is the mileage category</label>
   <div class="row gap end" style="margin-top:14px">${c.id ? `<button class="btn ghost danger-t" data-act="delCat" data-id="${c.id}" style="margin-right:auto">Delete</button>` : ''}<button class="btn ghost" data-act="close">Cancel</button><button class="btn" data-act="saveCat" data-id="${c.id || ''}">Save</button></div>`);
 }
 ACTIONS.saveCat = wrap(async t => {
-  const p = { name: $('#c_name').value.trim(), gl_code: $('#c_gl').value || null, color: $('#c_col').value, per_item_limit: $('#c_lim').value === '' ? null : parseFloat($('#c_lim').value), receipt_required: $('#c_rc').value === '1', is_mileage: $('#c_mile').checked };
+  const p = { name: $('#c_name').value.trim(), gl_code: $('#c_gl').value || null, color: $('#c_col').value, per_item_limit: $('#c_lim').value === '' ? null : parseFloat($('#c_lim').value), receipt_required: $('#c_rc').value === '1', is_mileage: $('#c_mile').checked, ...($('#c_note') ? { policy_note: $('#c_note').value.trim() || null } : {}) };
   if (!p.name) return toast('Name required', 'err');
   if (t.dataset.id) await q(sb.from('exp_categories').update(p).eq('id', t.dataset.id)); else await q(sb.from('exp_categories').insert({ ...p, workspace_id: App.ws.id }));
   closeModal(); await reloadWorkspace(); rerender();

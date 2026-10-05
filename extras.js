@@ -261,3 +261,44 @@ ACTIONS.stmtMatch = (t, ev) => {
 };
 ACTIONS.stmtLink = wrap(async t => { await q(sb.from('exp_statement_lines').update({ status: 'matched', expense_id: t.dataset.exp }).eq('id', t.dataset.line)); closeModal(); rerender(); });
 ACTIONS.stmtCsv = () => download(`unmatched-card-lines-${today()}.csv`, toCSV([['Date', 'Description', 'Amount'], ...ST.lines.filter(l => l.status === 'unmatched').map(l => [l.line_date, l.description, (+l.amount).toFixed(2)])]));
+
+/* ---------- schema probe: the 08 update (inbox, trip budgets, guidance, email alerts) ---------- */
+const HAS = { v8: (() => { try { return localStorage.getItem('eh_v8') === '1'; } catch (e) { return false; } })() };
+async function probeSchema() {
+  const was = HAS.v8;
+  try { const r = await sb.from('exp_trips').select('budget').limit(1); HAS.v8 = !r.error; try { localStorage.setItem('eh_v8', HAS.v8 ? '1' : '0'); } catch (e) { } } catch (e) { /* offline: keep what we knew */ }
+  if (HAS.v8 !== was) { renderShell(); refreshBadges(); }
+}
+
+/* ---------- receipt inbox (receipts emailed in by the Apps Script) ---------- */
+VIEWS.inbox = async el => {
+  let rows = [];
+  try { rows = await q(sb.from('exp_expenses').select('*').eq('workspace_id', App.ws.id).eq('user_id', App.user.id).eq('needs_review', true).order('created_at', { ascending: false })); } catch (e) { if (isNetErr(e)) throw e; }
+  rows.forEach(r => { if (!EX.rows.find(x => x.id === r.id)) EX.rows.push(r); });
+  const addr = App.ws.inbox_email;
+  el.innerHTML = `<div class="card" style="margin-bottom:12px"><h3>Email your receipts</h3>
+    <p class="sub">${addr ? `Forward any receipt, e-receipt or invoice from your work email to <b>${esc(addr)}</b>. Photos, PDFs and email bodies all work. It appears here already read, ready for you to check.` : 'Your admin has not set up a receipt email address yet (Settings → Workspace policy).'}</p>
+    ${addr ? `<div class="row wrap gap"><a class="btn ghost" href="mailto:${esc(addr)}">${ic('mail', 16)} Start an email</a></div>` : ''}</div>
+  <div class="card nopad">${rows.length ? rows.map(e => `<div class="item" data-act="inboxOpen" data-id="${e.id}"><div class="thumb" style="--c:#df0a1e">${ic('mail', 20)}</div><div class="grow"><b>${esc(e.merchant || 'Emailed receipt')}</b><span class="sub">Received ${dfmt(e.created_at)} · tap to read and check</span></div><div class="right"><span class="pill check">to check</span></div></div>`).join('')
+    : '<div class="empty">Nothing waiting. Receipts you email in will show up here.</div>'}</div>`;
+};
+ACTIONS.inboxOpen = t => openExpense(t.dataset.id);
+const _openExpense = openExpense;
+openExpense = async function (id) {
+  await _openExpense.apply(this, arguments);
+  if (id && X && X.needs_review && !X.file && X.receipt_path && !(parseFloat(X.amount) > 0)) readStoredReceipt();
+};
+async function readStoredReceipt() {
+  const out = $('#x_ocr'); if (!out) return;
+  out.textContent = 'Reading the emailed receipt…';
+  try {
+    const { data, error } = await sb.storage.from('exp-receipts').download(X.receipt_path); if (error || !data) throw error || new Error('Could not open the receipt');
+    const ext = (X.receipt_path.match(/\.(\w{2,4})$/)?.[1] || 'jpg').toLowerCase(), type = ext === 'pdf' ? 'application/pdf' : (data.type && data.type !== 'application/octet-stream' ? data.type : 'image/' + (ext === 'jpg' ? 'jpeg' : ext));
+    X._readFile = new File([data], 'receipt.' + ext, { type });
+    await ACTIONS.xScan(); delete X._readFile;
+  } catch (e) { delete X._readFile; if ($('#x_ocr')) $('#x_ocr').textContent = 'Could not read it automatically — fill in the details from the receipt.'; }
+}
+ACTIONS.xReadStored = () => readStoredReceipt();
+
+/* ---------- pack buttons ---------- */
+ACTIONS.anPack = () => { const l = (AN.rows || []).filter(e => !e.needs_review); exportPack(l, `${$('#a_preset')?.selectedOptions[0]?.text || 'Selection'} (${rangeLabel(l)})`, true); };
