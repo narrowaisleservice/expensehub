@@ -116,3 +116,5 @@ figure{margin:12px 0;page-break-inside:avoid}figure img{max-width:100%;max-heigh
   .no-print{display:none!important}.print-only{display:block}
   :root{--ink:#000;--mute:#555;--line:#ccc;--card:#fff}
 }
+
+.item.mhead{background:var(--bg);font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);cursor:default;padding:8px 14px}.item.mhead b{font-weight:600}

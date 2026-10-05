@@ -64,7 +64,11 @@ function expenseRow(e, selectable) {
 }
 function drawExpenseList() {
   const l = filteredExpenses();
-  $('#exlist').innerHTML = l.length ? l.map(e => expenseRow(e, true)).join('') + `<div class="item foot"><span class="grow">${l.length} expense(s)</span><b>${money(sum(l, e => e.amount_base))}</b></div>` : '<div class="empty">No expenses match. Tap “+ New expense” or scan a receipt.</div>';
+  const monthTot = {}; l.forEach(e => { const m = e.expense_date.slice(0, 7); monthTot[m] = (monthTot[m] || 0) + +e.amount_base; });
+  let lastM = '';
+  const body = l.map(e => { const m = e.expense_date.slice(0, 7), h = m !== lastM ? `<div class="item mhead"><b>${new Date(m + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</b><span class="grow"></span><b>${money(monthTot[m])}</b></div>` : ''; lastM = m; return h + expenseRow(e, true); }).join('');
+  const unrep = l.filter(e => e.user_id === App.user.id && expStatus(e) === 'unreported').length;
+  $('#exlist').innerHTML = l.length ? body + `<div class="item foot"><span class="grow">${l.length} expense(s)${unrep ? ` · <a href="#" data-act="selAllUnreported">select my ${unrep} unsubmitted</a>` : ''}</span><b>${money(sum(l, e => e.amount_base))}</b></div>` : '<div class="empty">No expenses match. Tap “+ New expense” or scan a receipt.</div>';
   drawBulk();
 }
 function drawBulk() {
@@ -79,6 +83,8 @@ ACTIONS.bulkDelete = async () => {
   if (!await confirmBox(`Delete ${EX.sel.size} expense(s)?`, 'Delete', true)) return;
   await q(sb.from('exp_expenses').delete().in('id', [...EX.sel])); toast('Deleted'); rerender();
 };
+ACTIONS.selAllUnreported = (t, ev) => { ev.preventDefault(); ev.stopPropagation(); filteredExpenses().filter(e => e.user_id === App.user.id && expStatus(e) === 'unreported').forEach(e => EX.sel.add(e.id)); drawExpenseList(); };
+ACTIONS.submitAll = () => { EX.sel = new Set(EX.rows.filter(e => e.user_id === App.user.id && expStatus(e) === 'unreported').map(e => e.id)); if (!EX.sel.size) return toast('Nothing to submit', 'err'); ACTIONS.addToReport(); };
 ACTIONS.addToReport = async () => {
   const mine = await q(sb.from('exp_reports').select('id,name').eq('workspace_id', App.ws.id).eq('user_id', App.user.id).in('status', ['draft', 'rejected']).order('created_at', { ascending: false }));
   const d = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
@@ -156,7 +162,9 @@ function drawExpenseForm() {
   <div class="seg">${[['expense', 'Expense'], ['mileage', 'Mileage'], ['per_diem', 'Per diem']].map(([k, n]) => `<button data-act="xKind" data-v="${k}" class="${e.kind === k ? 'on' : ''}" ${e.id ? 'disabled' : ''}>${n}</button>`).join('')}</div>
   <fieldset ${dis} style="border:0;padding:0;margin:0">
   ${e.kind === 'mileage' ? `
-    <div class="two"><div><label>From</label><input id="x_from" value="${esc(e.from_loc)}"></div><div><label>To</label><input id="x_to" value="${esc(e.to_loc)}"></div></div>
+    <div class="two"><div><label>From</label><input id="x_from" value="${esc(e.from_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div><div><label>To</label><input id="x_to" value="${esc(e.to_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div></div>
+    <datalist id="places">${[...new Set(EX.rows.filter(r => r.kind === 'mileage').flatMap(r => [r.from_loc, r.to_loc]).filter(Boolean))].slice(0, 40).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+    <button type="button" class="btn ghost sm" data-act="xDist" style="margin-bottom:8px">📍 Work out the distance</button> <span class="sub" id="x_distnote"></span>
     <div class="two"><div><label>Miles</label><input id="x_miles" type="number" step="0.1" inputmode="decimal" value="${esc(e.miles)}"></div>
     <div><label>Date</label><input id="x_date" type="date" value="${e.expense_date}"></div></div>
     <label class="chk"><input type="checkbox" id="x_rt" ${e.roundTrip ? 'checked' : ''}> Round trip (double the miles)</label>
@@ -192,6 +200,7 @@ function drawExpenseForm() {
     </div><input type="file" id="x_file" accept="image/*,application/pdf" hidden>
     <div id="x_ocr" class="sub"></div></div>`}
   </fieldset>
+  <div id="x_hints"></div>
   <div class="row wrap gap end" style="margin-top:16px">
     ${e.id && ed ? '<button class="btn ghost danger-t" data-act="xDelete" style="margin-right:auto">Delete</button>' : ''}
     <button class="btn ghost" data-act="close">${ed ? 'Cancel' : 'Close'}</button>${ed ? '<button class="btn" data-act="xSave">Save</button>' : ''}
@@ -199,7 +208,30 @@ function drawExpenseForm() {
   ${e.id ? '<hr><h3>Chat</h3><div id="x_chat" class="chat"><div class="sub">Loading…</div></div><div class="row gap" style="margin-top:8px"><input id="x_msg" placeholder="Ask or answer a question about this expense…"><button class="btn sm" data-act="xSend">Send</button></div>' : ''}`, { wide: false });
   wireExpenseForm(); if (e.id) loadChat('expense', e.id);
 }
+/* live heads-up before saving: the same rules the server will flag */
+function readXSafe() { try { readX(); } catch (e) { } }
+function updateHints() {
+  const box = $('#x_hints'); if (!box || !$('#x_date')) return;
+  const v = id => $(id)?.value ?? '', ws = App.ws, k = X.kind, h = [];
+  const fx = parseFloat(v('#x_fx')) || 1, amt = (parseFloat(v('#x_amount')) || 0) * (k === 'expense' ? fx : 1), vat = parseFloat(v('#x_vat')) || 0, c = cat(v('#x_cat')), date = v('#x_date');
+  const hasRc = !!(X.file || X.receipt_path);
+  if (k === 'expense' && amt > 0) {
+    if (!hasRc && amt > ws.receipt_required_over && c?.receipt_required !== false) h.push('📎 A receipt is needed for this expense — add a photo.');
+    if (vat > 0 && !hasRc) h.push('VAT can only be reclaimed with a receipt.');
+    if (vat > 0 && amt > 250 && !v('#x_svat').trim()) h.push('Over £250 with VAT: add the supplier’s VAT number from the receipt.');
+    if (c?.per_item_limit && amt > c.per_item_limit) h.push(`Over the ${c.name} limit of ${money(c.per_item_limit)} — it will be flagged for approval.`);
+    if (amt > ws.flag_over) h.push(`Over ${money(ws.flag_over)} — it will be flagged for extra scrutiny.`);
+    const m = v('#x_merchant').trim().toLowerCase();
+    if (m && EX.rows.some(r => r.id !== X.id && r.kind === 'expense' && (r.merchant || '').toLowerCase() === m && r.expense_date === date && +r.amount === parseFloat(v('#x_amount')))) h.push('This looks like a duplicate of an expense you already have.');
+  }
+  if (k === 'mileage' && (v('#x_from').trim() === '' || v('#x_to').trim() === '' || !v('#x_notes').trim())) h.push('Mileage needs a start, an end and the business purpose (in Notes).');
+  if (date && date > today()) h.push('The date is in the future.');
+  else if (date && date < isoDate(new Date(Date.now() - 60 * 864e5))) h.push('This is more than 60 days old — it will be flagged.');
+  box.innerHTML = h.length ? `<div class="note" style="text-align:left;margin-top:10px">${h.map(x => `<div>⚠ ${esc(x)}</div>`).join('')}</div>` : '';
+}
 function wireExpenseForm() {
+  $('#mc').oninput = debounce(() => { readXSafe(); updateHints(); }, 150);
+  setTimeout(updateHints, 0);
   const g = id => $(id);
   g('#x_bill')?.addEventListener('change', ev => { $('#x_custbox').hidden = !ev.target.checked; });
   g('#x_cur')?.addEventListener('change', async ev => {
@@ -229,6 +261,25 @@ function wireExpenseForm() {
   });
 }
 ACTIONS.xKind = t => { readX(); X.kind = t.dataset.v; if (X.kind === 'mileage') X.category_id = App.cats.find(c => c.is_mileage)?.id || ''; drawExpenseForm(); };
+/* distance: postcodes.io / OpenStreetMap to find the places, OSRM for the driving route (free public services; best effort) */
+async function geocodePlace(txt) {
+  txt = txt.trim(); const pc = txt.replace(/\s+/g, '').toUpperCase();
+  if (/^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(pc)) { const r = await (await fetch('https://api.postcodes.io/postcodes/' + pc)).json(); if (r.result) return [r.result.longitude, r.result.latitude]; }
+  const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gb&q=' + encodeURIComponent(txt))).json();
+  if (r[0]) return [+r[0].lon, +r[0].lat];
+  throw new Error('Could not find "' + txt + '"');
+}
+ACTIONS.xDist = async t => {
+  const a = $('#x_from').value, b = $('#x_to').value, note = $('#x_distnote'); if (!a.trim() || !b.trim()) return toast('Enter where you started and finished first', 'err');
+  note.textContent = 'Working it out…'; t.disabled = true;
+  try {
+    const [p1, p2] = await Promise.all([geocodePlace(a), geocodePlace(b)]);
+    const r = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${p1.join(',')};${p2.join(',')}?overview=false`)).json();
+    if (!r.routes?.[0]) throw new Error('No driving route found');
+    const mi = Math.round(r.routes[0].distance / 1609.344 * 10) / 10; $('#x_miles').value = mi; $('#x_miles').dispatchEvent(new Event('input', { bubbles: true }));
+    note.textContent = `${mi} miles by road (one way). Tick "round trip" if you came back too. Check it looks right.`;
+  } catch (e) { note.textContent = (e.message || 'Could not work it out') + ' — enter the miles by hand.'; } finally { t.disabled = false; }
+};
 ACTIONS.xCamera = () => { const i = $('#x_file'); i.setAttribute('capture', 'environment'); i.click(); };
 ACTIONS.xPick = () => { const i = $('#x_file'); i.removeAttribute('capture'); i.click(); };
 ACTIONS.xView = (t, ev) => {

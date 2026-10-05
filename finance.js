@@ -16,6 +16,7 @@ const monthLabel = d => new Date(d + '-01T12:00:00').toLocaleDateString('en-GB',
 const stat = (label, val, sub = '', href = '') => `<${href ? 'a href="' + href + '"' : 'div'} class="card stat">${`<small>${label}</small><b>${val}</b>${sub ? `<span class="sub">${sub}</span>` : ''}`}</${href ? 'a' : 'div'}>`;
 
 /* ---------- dashboard ---------- */
+ACTIONS.gsHide = (t, ev) => { ev.preventDefault(); localStorage.setItem('eh_gs_' + App.ws.id, '1'); rerender(); };
 VIEWS.dashboard = async el => {
   const start = new Date(); start.setMonth(start.getMonth() - 5, 1);
   const ms = monthStart(), uid = App.user.id;
@@ -34,6 +35,20 @@ VIEWS.dashboard = async el => {
   const catTot = {}; (mgr ? EX.rows : mine).filter(e => e.expense_date >= ms).forEach(e => catTot[e.category_id || ''] = (catTot[e.category_id || ''] || 0) + +e.amount_base);
   const months = []; for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i, 1); months.push(isoDate(d).slice(0, 7)); }
   const trend = months.map(m => ({ label: monthLabel(m), value: sum((mgr ? EX.rows : mine).filter(e => e.expense_date.startsWith(m)), e => e.amount_base) }));
+  const unrep = mine.filter(e => expStatus(e) === 'unreported');
+  const ready = unrep.length ? `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div class="grow"><b style="white-space:normal;overflow:visible;text-overflow:clip">${unrep.length} expense${unrep.length > 1 ? 's' : ''} (${money(sum(unrep, e => e.amount_base))}) ready to claim</b><div class="sub">Put them in a report so they can be approved and paid.</div></div><button class="btn" data-act="submitAll">Create report</button></div>` : '';
+  /* getting-started checklist for admins, until done or dismissed */
+  let gs = '';
+  if (isAdmin() && !localStorage.getItem('eh_gs_' + App.ws.id)) {
+    const steps = [
+      ['Add your company details and VAT number', !!(App.ws.company_details || App.ws.vat_number), '#/settings'],
+      ['Check your mileage rates, limits and categories', false, '#/settings'],
+      ['Invite your team', (App.members || []).length > 1, '#/team'],
+      ['Scan your first receipt', EX.rows.length > 0, '#/expenses'],
+      ['Install the app on your phone (browser menu → Install app)', matchMedia('(display-mode: standalone)').matches, '']];
+    if (steps.filter(s => s[1]).length < steps.length)
+      gs = `<div class="card" style="margin-bottom:14px"><div class="row between"><h3>Getting started</h3><a href="#" data-act="gsHide">hide</a></div>${steps.map(s => `<div style="padding:5px 0">${s[1] ? '✅' : '⬜'} ${s[2] ? `<a href="${s[2]}">${s[0]}</a>` : s[0]}</div>`).join('')}</div>`;
+  }
   let mg = '';
   if (mgr && mgrData) {
     const [pend, appr, bills, invs] = mgrData, t = today();
@@ -49,7 +64,7 @@ VIEWS.dashboard = async el => {
   const alerts = [
     noRc ? `📎 ${noRc} expense(s) need a receipt` : '', rejected ? `↩ ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `🚫 You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
-  el.innerHTML = `${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
+  el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
   <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">📷 Scan receipt</button><button class="btn ghost" data-act="bulkScan">📚 Scan many</button><button class="btn ghost" data-act="newMileage">🚗 Mileage</button></div>
   <h3 class="sec">Me</h3><div class="grid">
     ${stat('Spent this month', money(spent), limit ? `of ${money(limit)} limit` : '')}
