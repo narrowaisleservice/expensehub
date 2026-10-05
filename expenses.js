@@ -168,6 +168,7 @@ function drawExpenseForm() {
   <div class="seg">${[['expense', 'Expense'], ['mileage', 'Mileage'], ['per_diem', 'Per diem']].map(([k, n]) => `<button data-act="xKind" data-v="${k}" class="${e.kind === k ? 'on' : ''}" ${e.id ? 'disabled' : ''}>${n}</button>`).join('')}</div>
   <fieldset ${dis} style="border:0;padding:0;margin:0">
   ${e.kind === 'mileage' ? `
+    ${e.id ? '' : `<div class="row gap" style="margin-bottom:8px"><select id="x_jn" style="flex:1"><option value="">Saved journeys…</option></select><button type="button" class="btn ghost sm" id="x_jndel" data-act="jnDel" hidden>Delete</button><button type="button" class="btn ghost sm" data-act="jnSave">Save this journey</button></div>`}
     <div class="two"><div><label>From</label><input id="x_from" value="${esc(e.from_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div><div><label>To</label><input id="x_to" value="${esc(e.to_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div></div>
     <datalist id="places">${[...new Set(EX.rows.filter(r => r.kind === 'mileage').flatMap(r => [r.from_loc, r.to_loc]).filter(Boolean))].slice(0, 40).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
     <button type="button" class="btn ghost sm" data-act="xDist" style="margin-bottom:8px">${ic('pin', 16)} Work out the distance</button> <span class="sub" id="x_distnote"></span>
@@ -247,8 +248,8 @@ function wireExpenseForm() {
   g('#x_merchant')?.addEventListener('input', debounce(() => {
     if (X.kind !== 'expense' || !$('#x_merchant') || !$('#x_cat')) return;
     const m = ($('#x_merchant').value || '').toLowerCase(); if (!m) return;
-    const r = App.rules.find(r => m.includes(r.match_text.toLowerCase()));
-    if (r && !$('#x_cat').value) { $('#x_cat').value = r.category_id; if (r.billable) { $('#x_bill').checked = true; $('#x_custbox').hidden = false; } $('#x_sugg').textContent = 'Auto-categorised from your rules'; }
+    const r = ruleFor(m);
+    if (r && !$('#x_cat').value) { $('#x_cat').value = r.category_id; if (r.billable) { $('#x_bill').checked = true; $('#x_custbox').hidden = false; } $('#x_sugg').textContent = 'Auto-categorised from your rules and past claims'; }
   }, 300));
   const mil = () => { readX(); const el = $('#x_est'); if (el) el.textContent = 'Estimated: ' + money(estimateMileage()) + ' (HMRC-style rates applied by the server)'; };
   ['#x_miles', '#x_rt'].forEach(s => g(s)?.addEventListener('input', mil));
@@ -334,7 +335,8 @@ async function aiReadReceipt(file) {
   let blob = file, type = file.type;
   if (type.startsWith('image/')) { blob = await compressImage(file, 1800, 0.82); type = 'image/jpeg'; } else if (type !== 'application/pdf') return null;
   if (blob.size > 4.5 * 1024 * 1024) return null;
-  const { data, error } = await sb.functions.invoke('read-receipt', { body: { image_base64: await blobB64(blob), media_type: type, categories: App.cats.map(c => c.name), currency: App.ws.currency } });
+  const { data, error } = await sb.functions.invoke('read-receipt', { body: { workspace_id: App.ws.id, image_base64: await blobB64(blob), media_type: type, categories: App.cats.map(c => c.name), currency: App.ws.currency } });
+  if (error?.context?.json) { try { const j = await error.context.json(); if (j?.error === 'daily_limit') { if (!aiReadReceipt.warned) { aiReadReceipt.warned = true; toast("Today's AI reading limit is used up — reading on this device instead", 'err'); } throw new Error('AI daily limit reached'); } } catch (e2) { if (e2.message === 'AI daily limit reached') throw e2; } }
   if (error || !data || data.error) throw new Error(error?.message || data?.error || 'AI reader unavailable');
   const cat = App.cats.find(c => c.name === data.category);
   return { merchant: data.merchant, amount: data.total, date: data.date, vat: data.vat_amount, currency: data.currency, svat: data.supplier_vat_number, catId: cat?.id || '', pay: data.payment_method, ai: true, notReceipt: data.is_receipt === false, unclear: data.legible === false };
@@ -364,7 +366,7 @@ ACTIONS.xScan = async () => {
     if (p.currency && p.currency !== App.ws.currency) {
       X.currency = p.currency; try { X.fx_rate = await fxRate(p.currency, App.ws.currency); note = ` Currency read as ${p.currency} (rate ${X.fx_rate}).`; } catch (e) { note = ` Currency looks like ${p.currency} — enter the rate.`; }
     }
-    const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
+    const rule = ruleFor(X.merchant); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
     drawExpenseForm(); $('#x_ocr').textContent = `${p.ai ? 'Read with AI' : 'Read on this device'} — filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT', p.svat && 'supplier VAT no.', p.catId && 'category'].filter(Boolean).join(', ') || 'nothing found'}.${note}${p.notReceipt ? ' This does not look like a receipt.' : ''}${p.unclear ? ' It looks hard to read — keep the paper copy.' : ''} Please check every field against the receipt.`;
     if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
   } catch (e) { out.textContent = ''; fail(e); }
@@ -446,7 +448,7 @@ async function runBulk() {
           if (p.svat) r.svat = p.svat; if (p.catId) r.cat = p.catId; if (p.pay) r.pay = p.pay; if (p.unclear) { r.check = 'unclear'; r.msg = (r.msg + ' Looks hard to read.').trim(); } if (p.notReceipt) r.msg = (r.msg + ' Does not look like a receipt.').trim();
           if (p.merchant) r.merchant = p.merchant; if (p.amount) r.amount = p.amount.toFixed(2); if (p.date) r.date = p.date; if (p.vat) r.vat = p.vat.toFixed(2);
           if (p.currency && p.currency !== App.ws.currency) { r.currency = p.currency; try { r.fx = await fxRate(p.currency, App.ws.currency); } catch (e) { r.msg += ' Foreign currency — check the amount.'; } }
-          const rule = App.rules.find(x => (r.merchant || '').toLowerCase().includes(x.match_text.toLowerCase())); if (rule && !r.cat) r.cat = rule.category_id;
+          const rule = ruleFor(r.merchant); if (rule && !r.cat) r.cat = rule.category_id;
           if (!r.amount) r.msg = (r.msg + ' Could not read the total — enter it.').trim();
         } else if (r.file.type === 'application/pdf') {
           const p = await readReceipt(r.file); if (!p) throw new Error('unreadable');
@@ -475,7 +477,7 @@ ACTIONS.bulkSave = wrap(async () => {
     const row = { kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_check: r.check, notes: '', billable: false, customer: null, miles: null, from_loc: null, to_loc: null, trip_id: null }, nid = uuid();
     try {
       const path = await uploadReceipt(r.file), hash = uploadReceipt.last?.hash || null;
-      await q(sb.from('exp_expenses').insert({ ...row, id: nid, workspace_id: App.ws.id, user_id: App.user.id, receipt_path: path, receipt_hash: hash }));
+      await q(sb.from('exp_expenses').insert({ ...row, id: nid, workspace_id: App.ws.id, user_id: App.user.id, receipt_path: path, receipt_hash: hash })); learnMerchant(row.merchant, row.category_id, false);
       ok++;
     } catch (e) {
       if (isNetErr(e)) { try { await OFF.queue(row, r.file, false, nid); ok++; continue; } catch (e2) { /* fall through */ } }
@@ -518,6 +520,7 @@ ACTIONS.xSave = wrap(async () => {
     payload.receipt_path = e.receipt_path || null; payload.receipt_hash = e.receipt_path ? e.receipt_hash || null : null;
     if (e.id) await q(sb.from('exp_expenses').update(payload).eq('id', e.id));
     else await q(sb.from('exp_expenses').insert({ ...payload, id: nid, workspace_id: App.ws.id, user_id: App.user.id }));
+    if (e.kind === 'expense') learnMerchant(e.merchant, e.category_id, e.billable);
     closeModal(); toast('Saved'); rerender();
   } catch (err) {
     if (!e.id && isNetErr(err)) return keepLocal();                       // signal dropped mid-save

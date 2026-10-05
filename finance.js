@@ -29,6 +29,7 @@ VIEWS.dashboard = async el => {
   ]).catch(() => null) : null]);
   const mine = EX.rows.filter(e => e.user_id === uid), monthMine = mine.filter(e => e.expense_date >= ms);
   const by = s => mine.filter(e => expStatus(e) === s);
+  const old7 = isoDate(new Date(Date.now() - 7 * 864e5)), stale = mine.filter(e => expStatus(e) === 'unreported' && e.expense_date < old7).length;
   const noRc = mine.filter(e => ['unreported', 'draft', 'rejected'].includes(expStatus(e)) && (e.flags || []).includes('no_receipt')).length;
   const rejected = Object.values(EX.reps).filter(r => r.user_id === uid && r.status === 'rejected').length;
   const limit = App.me.monthly_limit, spent = sum(monthMine, e => e.amount_base);
@@ -62,7 +63,7 @@ VIEWS.dashboard = async el => {
       ${fin ? stat('Invoices outstanding', money(sum(iv, i => i.total)), `${iv.length} sent${overInv.length ? ` · <span class="flag">${overInv.length} overdue</span>` : ''}`, '#/invoices') : ''}</div>`;
   }
   const alerts = [
-    noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
+    noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', stale ? `${ic('clock', 16)} ${stale} expense(s) have not been put on a report for over a week` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `${ic('ban', 16)} You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
   el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
   <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>

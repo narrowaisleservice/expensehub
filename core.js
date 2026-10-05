@@ -62,6 +62,9 @@ const IC = {
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
   ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
   back: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  percent: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+  match: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   tick: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
 };
@@ -208,6 +211,7 @@ async function selectWorkspace(id) {
   App.members = members; App.cats = cats; App.rules = rules;
   App.me = members.find(m => m.user_id === App.user.id) || { role: w._role };
   if (typeof OFF !== 'undefined') OFF.saveSnap();
+  if (typeof loadLearned === 'function') { loadLearned(); loadNotifs(); }
   return true;
 }
 async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace(App.ws.id); }
@@ -216,7 +220,7 @@ async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace
 /* [id, label, icon, who can see it, group heading]  — who: '' everyone, 'manager' approver/finance/admin, 'finance' finance/admin */
 const NAV = [
   ['dashboard', 'Dashboard', 'dash', '', ''], ['expenses', 'Expenses', 'receipt', '', ''], ['reports', 'Reports', 'file', '', ''], ['approvals', 'Approvals', 'check', 'manager', ''], ['trips', 'Trips', 'trip', '', ''],
-  ['bills', 'Bills to pay', 'cash', 'finance', 'Finance'], ['invoices', 'Invoices', 'calc', 'finance', 'Finance'], ['budgets', 'Budgets', 'target', 'finance', 'Finance'], ['analytics', 'Analytics', 'chart', 'finance', 'Finance'],
+  ['bills', 'Bills to pay', 'cash', 'finance', 'Finance'], ['invoices', 'Invoices', 'calc', 'finance', 'Finance'], ['budgets', 'Budgets', 'target', 'finance', 'Finance'], ['analytics', 'Analytics', 'chart', 'finance', 'Finance'], ['vat', 'VAT summary', 'percent', 'finance', 'Finance'], ['statements', 'Card matching', 'match', 'finance', 'Finance'],
   ['team', 'Team', 'users', 'manager', 'Admin'], ['audit', 'Audit log', 'clock', 'manager', 'Admin'], ['settings', 'Settings', 'sliders', '', 'Admin']
 ];
 const navAllowed = n => !n[3] || (n[3] === 'manager' && isManager()) || (n[3] === 'finance' && isFinance());

@@ -2,8 +2,8 @@
    - App files: network first (new deployments show up straight away), but fall back to the saved copy after 4s or when offline.
    - Libraries and fonts from CDNs: saved the first time they load, then served from the saved copy.
    - Supabase, exchange-rate and map calls are never saved. Bump VERSION to clear old caches. */
-const VERSION = 'eh-v7';
-const SHELL = ['./', 'index.html', 'styles.css', 'config.js', 'core.js', 'offline.js', 'expenses.js', 'reports.js', 'finance.js', 'admin.js', 'app.js',
+const VERSION = 'eh-v8';
+const SHELL = ['./', 'index.html', 'styles.css', 'config.js', 'core.js', 'offline.js', 'expenses.js', 'reports.js', 'finance.js', 'admin.js', 'extras.js', 'app.js',
   'manifest.webmanifest', 'flexi-logo-white.svg', 'flexi-logo-red.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
 const CACHEABLE_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'tessdata.projectnaptha.com', 'unpkg.com'];

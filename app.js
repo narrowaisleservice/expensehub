@@ -90,7 +90,7 @@ async function start(user) {
     try { await loadWorkspaces(); } catch (e) { if (await offlineStart(e)) return; throw e; }
     if (!App.workspaces.length) return showOnboarding();
     try { await selectWorkspace(localStorage.getItem('eh_ws')); } catch (e) { if (await offlineStart(e)) return; throw e; }
-    App.offline = false; await OFF.refresh(); showApp(); OFF.sync(); fetchExpenses().catch(() => { });   // sync anything waiting, and keep a copy of the list for offline use
+    App.offline = false; await OFF.refresh(); showApp(); OFF.sync(); startNotifs(); fetchExpenses().catch(() => { });   // sync anything waiting, and keep a copy of the list for offline use
   } catch (e) { fail(e); showAuth(); } finally { starting = false; }
 }
 async function boot() {

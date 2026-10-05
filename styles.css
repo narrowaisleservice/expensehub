@@ -126,3 +126,4 @@ svg.i{vertical-align:-3px;flex:none}
 #nav .ic{display:grid;place-items:center}#nav .ic svg.i{margin:0}
 .thumb{color:var(--c,#666)}.thumb svg.i{margin:0}
 .btn.ghost.sm[data-act="close"] svg.i{margin:0}
+#bellBtn{position:relative;display:inline-grid;place-items:center}.bellN{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;border-radius:999px;font-size:10px;line-height:1;padding:3px 5px;font-style:normal;min-width:16px;text-align:center}

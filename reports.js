@@ -52,7 +52,7 @@ async function openReport(id) {
   <div class="row wrap gap no-print" style="margin-top:14px">
     ${mine && ['draft', 'rejected'].includes(st) ? '<button class="btn" data-act="submitReport">Submit for approval</button>' : ''}
     ${mine && st === 'submitted' ? '<button class="btn ghost" data-act="recallReport">Recall to draft</button>' : ''}
-    ${canDecide ? '<button class="btn ok" data-act="approveReport">Approve</button><button class="btn ghost" data-act="rejectReport">Reject…</button>' : ''}
+    ${canDecide ? (App.ws.approval_threshold && App.me.role === 'approver' && sum(items, e => e.amount_base) > App.ws.approval_threshold ? `<div class="note">This report is over ${money(App.ws.approval_threshold)}, so it needs approval from Finance or an Admin.</div>` : '<button class="btn ok" data-act="approveReport">Approve</button>') + '<button class="btn ghost" data-act="rejectReport">Reject…</button>' : ''}
     ${isFinance() && st === 'approved' ? '<button class="btn ok" data-act="payReport">Mark reimbursed</button>' : ''}
     <button class="btn ghost" data-act="printReport">Print / PDF</button>
     <select id="rp_fmt"><option value="generic">CSV</option><option value="xero">Xero</option><option value="quickbooks">QuickBooks</option></select><button class="btn ghost" data-act="exportReport">Export</button>
