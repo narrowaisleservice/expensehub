@@ -270,10 +270,33 @@ function mergeParsed(texts) {
   p.merchant = (parsed.find(r => r.known) || p).merchant || p.merchant; p.date = p.date || parsed.find(r => r.date)?.date; p.currency = p.currency || parsed.find(r => r.currency)?.currency;
   return p;
 }
+/* ---------- AI reading (Claude vision via the read-receipt Supabase function), with the on-device reader as fallback ---------- */
+const blobB64 = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+async function aiReadReceipt(file) {
+  if (App.ws.ai_receipts === false) return null;
+  let blob = file, type = file.type;
+  if (type.startsWith('image/')) { blob = await compressImage(file, 1800, 0.82); type = 'image/jpeg'; } else if (type !== 'application/pdf') return null;
+  if (blob.size > 4.5 * 1024 * 1024) return null;
+  const { data, error } = await sb.functions.invoke('read-receipt', { body: { image_base64: await blobB64(blob), media_type: type, categories: App.cats.map(c => c.name), currency: App.ws.currency } });
+  if (error || !data || data.error) throw new Error(error?.message || data?.error || 'AI reader unavailable');
+  const cat = App.cats.find(c => c.name === data.category);
+  return { merchant: data.merchant, amount: data.total, date: data.date, vat: data.vat_amount, currency: data.currency, svat: data.supplier_vat_number, catId: cat?.id || '', pay: data.payment_method, ai: true, notReceipt: data.is_receipt === false, unclear: data.legible === false };
+}
+/* AI first; if it is switched off, offline or fails, read on the device instead. getWorker lets a batch share one OCR worker. */
+async function readReceipt(file, getWorker) {
+  try { const a = await aiReadReceipt(file); if (a) return a; } catch (e) { console.warn('AI read failed, using on-device reader:', e.message); }
+  if (file.type.startsWith('image/') && file.type !== 'image/heic') return mergeParsed(getWorker ? await ocrWith(await getWorker(), file) : await ocrReceipt(file));
+  return null;
+}
 ACTIONS.xScan = async () => {
-  const out = $('#x_ocr'); out.textContent = 'Reading receipt… (the first scan downloads the reader, ~10s)';
+  const out = $('#x_ocr'); out.textContent = 'Reading receipt…';
   try {
-    const p = mergeParsed(await ocrReceipt(X.file)); readX();
+    const p = await readReceipt(X.file); readX();
+    if (!p) { out.textContent = 'This file type cannot be read automatically — enter the details by hand.'; return; }
+    if (p.svat) X.supplier_vat_no = p.svat;
+    if (p.catId && !X.category_id) X.category_id = p.catId;
+    if (p.pay) X.payment_method = p.pay;
+    if (p.unclear) X.receipt_check = 'unclear';
     if (p.merchant) X.merchant = p.merchant;
     if (p.amount) X.amount = p.amount.toFixed(2);
     if (p.date) X.expense_date = p.date;
@@ -283,7 +306,7 @@ ACTIONS.xScan = async () => {
       X.currency = p.currency; try { X.fx_rate = await fxRate(p.currency, App.ws.currency); note = ` Currency read as ${p.currency} (rate ${X.fx_rate}).`; } catch (e) { note = ` Currency looks like ${p.currency} — enter the rate.`; }
     }
     const rule = App.rules.find(r => (X.merchant || '').toLowerCase().includes(r.match_text.toLowerCase())); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
-    drawExpenseForm(); $('#x_ocr').textContent = `✨ Filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT'].filter(Boolean).join(', ') || 'nothing found'}.${note} Please check every field against the receipt.`;
+    drawExpenseForm(); $('#x_ocr').textContent = `✨ ${p.ai ? 'Read with AI' : 'Read on this device'} — filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT', p.svat && 'supplier VAT no.', p.catId && 'category'].filter(Boolean).join(', ') || 'nothing found'}.${note}${p.notReceipt ? ' This does not look like a receipt.' : ''}${p.unclear ? ' It looks hard to read — keep the paper copy.' : ''} Please check every field against the receipt.`;
     if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
   } catch (e) { out.textContent = ''; fail(e); }
 };
@@ -327,7 +350,7 @@ function startBulk(files) {
   if (!files.length) return;
   if (files.length > 20) { toast('Reading the first 20 — do the rest in a second batch', 'err'); files = files.slice(0, 20); }
   const big = files.filter(f => f.size > 15 * 1024 * 1024); if (big.length) toast(big.length + ' file(s) over 15MB skipped', 'err');
-  BK.rows = files.filter(f => f.size <= 15 * 1024 * 1024).map(f => ({ id: uuid(), file: f, merchant: '', date: today(), amount: '', vat: '', currency: App.ws.currency, fx: 1, cat: '', check: 'ok', state: 'wait', msg: '' }));
+  BK.rows = files.filter(f => f.size <= 15 * 1024 * 1024).map(f => ({ id: uuid(), svat: '', pay: '', file: f, merchant: '', date: today(), amount: '', vat: '', currency: App.ws.currency, fx: 1, cat: '', check: 'ok', state: 'wait', msg: '' }));
   if (!BK.rows.length) return;
   modal('<div id="bk"></div>', { wide: true });
   $('#mc').oninput = ev => { const t = ev.target, r = BK.rows.find(x => x.id === t.dataset.r); if (r && t.dataset.f) r[t.dataset.f] = t.value; };
@@ -358,12 +381,16 @@ async function runBulk() {
       try {
         if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
           const qc = await checkReceiptImage(r.file); r.check = qc.ok ? 'ok' : 'unclear'; r.msg = qc.problems.join(' ');
-          worker = worker || await newOcrWorker();
-          const p = mergeParsed(await ocrWith(worker, r.file));
+          const p = await readReceipt(r.file, async () => (worker = worker || await newOcrWorker()));
+          if (!p) throw new Error('unreadable');
+          if (p.svat) r.svat = p.svat; if (p.catId) r.cat = p.catId; if (p.pay) r.pay = p.pay; if (p.unclear) { r.check = 'unclear'; r.msg = (r.msg + ' Looks hard to read.').trim(); } if (p.notReceipt) r.msg = (r.msg + ' Does not look like a receipt.').trim();
           if (p.merchant) r.merchant = p.merchant; if (p.amount) r.amount = p.amount.toFixed(2); if (p.date) r.date = p.date; if (p.vat) r.vat = p.vat.toFixed(2);
           if (p.currency && p.currency !== App.ws.currency) { r.currency = p.currency; try { r.fx = await fxRate(p.currency, App.ws.currency); } catch (e) { r.msg += ' Foreign currency — check the amount.'; } }
-          const rule = App.rules.find(x => (r.merchant || '').toLowerCase().includes(x.match_text.toLowerCase())); if (rule) r.cat = rule.category_id;
+          const rule = App.rules.find(x => (r.merchant || '').toLowerCase().includes(x.match_text.toLowerCase())); if (rule && !r.cat) r.cat = rule.category_id;
           if (!r.amount) r.msg = (r.msg + ' Could not read the total — enter it.').trim();
+        } else if (r.file.type === 'application/pdf') {
+          const p = await readReceipt(r.file); if (!p) throw new Error('unreadable');
+          if (p.merchant) r.merchant = p.merchant; if (p.amount) r.amount = p.amount.toFixed(2); if (p.date) r.date = p.date; if (p.vat) r.vat = p.vat.toFixed(2); if (p.svat) r.svat = p.svat; if (p.catId) r.cat = p.catId;
         } else r.msg = 'Not read automatically — enter the details.';
       } catch (e) { r.msg = 'Could not read this one — enter the details.'; }
       r.state = 'done'; drawBkSafe();
@@ -383,7 +410,7 @@ ACTIONS.bulkSave = wrap(async () => {
     if (!(amount > 0) || !(r.merchant || '').trim()) { r.msg = 'Needs a merchant and an amount.'; left.push(r); continue; }
     try {
       const path = await uploadReceipt(r.file), hash = uploadReceipt.last?.hash || null;
-      await q(sb.from('exp_expenses').insert({ workspace_id: App.ws.id, user_id: App.user.id, kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: 'personal', vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_path: path, receipt_hash: hash, receipt_check: r.check }));
+      await q(sb.from('exp_expenses').insert({ workspace_id: App.ws.id, user_id: App.user.id, kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_path: path, receipt_hash: hash, receipt_check: r.check }));
       ok++;
     } catch (e) { r.msg = e.message || 'Could not save'; left.push(r); }
   }

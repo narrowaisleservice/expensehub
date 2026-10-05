@@ -54,7 +54,7 @@ VIEWS.settings = async el => {
     <div class="grid3"><div><label>Mileage rate (per mile)</label><input id="w_mr" type="number" step="0.001" value="${w.mileage_rate}"></div><div><label>Rate after threshold</label><input id="w_mr2" type="number" step="0.001" value="${w.mileage_rate_after}"></div><div><label>Threshold (miles / tax year)</label><input id="w_mt" type="number" value="${w.mileage_threshold}"></div></div>
     <div class="grid3"><div><label>Receipt required above</label><input id="w_rc" type="number" step="0.01" value="${w.receipt_required_over}"></div><div><label>Flag expenses over</label><input id="w_fl" type="number" step="1" value="${w.flag_over}"></div><div><label>Default VAT %</label><input id="w_vat" type="number" step="0.5" value="${w.vat_rate}"></div></div>
     <div class="two"><div><label>Invoice prefix</label><input id="w_ip" value="${esc(w.invoice_prefix)}"></div><div><label>Company VAT number</label><input id="w_vatno" value="${esc(w.vat_number || '')}" placeholder="GB123456789"></div></div>
-    <div class="two"><div><label>Keep records for (years, minimum 6)</label><input id="w_ret" type="number" min="6" step="1" value="${w.retention_years || 6}"></div><div></div></div>
+    <div class="two"><div><label>Keep records for (years, minimum 6)</label><input id="w_ret" type="number" min="6" step="1" value="${w.retention_years || 6}"></div><div><label>Receipt reading</label><select id="w_ai"><option value="1" ${w.ai_receipts !== false ? 'selected' : ''}>AI (receipt photos are sent to Anthropic)</option><option value="0" ${w.ai_receipts === false ? 'selected' : ''}>On this device only</option></select></div></div>
     <label>Company details (shown on invoices)</label><textarea id="w_co" rows="3" placeholder="Company name, address, VAT number, bank details">${esc(w.company_details || '')}</textarea>
     <button class="btn" style="margin-top:12px" data-act="saveWs">Save policy</button></div>` : ''}
   ${fin ? `<div class="card" style="margin-top:14px"><div class="row between"><h3>Categories</h3><button class="btn sm" data-act="newCat">+ Add</button></div>
@@ -84,13 +84,14 @@ ACTIONS.exportMine = wrap(async () => {
 ACTIONS.privacyInfo = () => modal(`<div class="row between"><h2>Privacy &amp; records notice</h2><button class="btn ghost sm" data-act="close">✕</button></div>
   <p><b>What is held:</b> your name, work email, expense details (merchant, date, amount, VAT, notes, journeys) and photos of receipts you upload.</p>
   <p><b>Why:</b> to reimburse you, keep the accounting records the company must keep by law, and support VAT and tax returns.</p>
+  <p><b>Receipt reading:</b> ${App.ws.ai_receipts === false ? 'receipts are read on your device only.' : 'when you scan a receipt, the photo is sent securely to Anthropic (the maker of Claude) to read the merchant, date, total and VAT. Admins can switch this off in Settings.'}</p>
   <p><b>Who sees it:</b> you, your approvers and the finance team of your workspace. Data is held in the company's own database account and protected by access rules.</p>
   <p><b>How long:</b> at least ${App.ws.retention_years || 6} years (HMRC business record-keeping). Submitted records cannot be deleted before then, even on request; after that they can be removed.</p>
   <p><b>Your rights (UK GDPR):</b> you can download your data from Settings and ask your company's data controller to correct or erase data that is no longer needed.</p>
   <p class="sub">Digital receipt copies: HMRC accepts scanned or photographed records if they are a clear, complete and unaltered copy and are kept for the required period. Check with your accountant if unsure.</p>`);
 ACTIONS.saveWs = wrap(async () => {
   const n = id => parseFloat($(id).value);
-  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, vat_number: $('#w_vatno').value.trim() || null, retention_years: Math.max(6, parseInt($('#w_ret').value) || 6), company_details: $('#w_co').value || null }).eq('id', App.ws.id));
+  await q(sb.from('exp_workspaces').update({ name: $('#w_name').value.trim() || App.ws.name, currency: $('#w_cur').value, mileage_rate: n('#w_mr'), mileage_rate_after: n('#w_mr2'), mileage_threshold: parseInt($('#w_mt').value), receipt_required_over: n('#w_rc'), flag_over: n('#w_fl'), vat_rate: n('#w_vat'), invoice_prefix: $('#w_ip').value, vat_number: $('#w_vatno').value.trim() || null, retention_years: Math.max(6, parseInt($('#w_ret').value) || 6), company_details: $('#w_co').value || null, ...('ai_receipts' in App.ws ? { ai_receipts: $('#w_ai').value === '1' } : {}) }).eq('id', App.ws.id));
   await reloadWorkspace(); renderShell(); toast('Policy saved');
 });
 ACTIONS.newCat = () => catForm();
