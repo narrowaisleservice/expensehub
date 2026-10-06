@@ -172,6 +172,7 @@ function drawExpenseForm() {
   <fieldset ${dis} style="border:0;padding:0;margin:0">
   ${e.kind === 'mileage' ? `
     ${e.id ? '' : `<div class="row gap" style="margin-bottom:8px"><select id="x_jn" style="flex:1"><option value="">Saved journeys…</option></select><button type="button" class="btn ghost sm" id="x_jndel" data-act="jnDel" hidden>Delete</button><button type="button" class="btn ghost sm" data-act="jnSave">Save this journey</button></div>`}
+    ${e.id || !navigator.geolocation ? '' : TRK.active() ? '<div class="note" style="margin-bottom:8px">A journey is being tracked — tap <b>Stop</b> in the bar at the bottom when you arrive.</div>' : `<button type="button" class="btn ghost sm" data-act="trkStart" style="margin-bottom:8px">${ic('pin', 16)} Start tracking by GPS</button><span class="sub"> Press when you set off; press Stop when you arrive.</span>`}
     <div class="two"><div><label>From</label><input id="x_from" value="${esc(e.from_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div><div><label>To</label><input id="x_to" value="${esc(e.to_loc)}" list="places" placeholder="Postcode or place" autocomplete="off"></div></div>
     <datalist id="places">${[...new Set(EX.rows.filter(r => r.kind === 'mileage').flatMap(r => [r.from_loc, r.to_loc]).filter(Boolean))].slice(0, 40).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
     <button type="button" class="btn ghost sm" data-act="xDist" style="margin-bottom:8px">${ic('pin', 16)} Work out the distance</button> <span class="sub" id="x_distnote"></span>
