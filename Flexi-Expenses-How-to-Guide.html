@@ -1,0 +1,401 @@
+<!doctype html><html lang="en-GB"><meta charset="utf-8"><title>Flexi Expenses How-to Guide</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap"><style>
+@page{size:A4;margin:0 0 18mm 0;@bottom-left{content:'Flexi Expenses How-to Guide';font:8pt Inter,sans-serif;color:#6b6b6b;padding-left:18mm;border-top:1px solid #e4e4e4;width:150mm;vertical-align:middle}@bottom-right{content:'Page ' counter(page);font:8pt Inter,sans-serif;color:#6b6b6b;padding-right:18mm;border-top:1px solid #e4e4e4;vertical-align:middle}}
+@page full{margin:0;@bottom-left{content:none;border:0}@bottom-right{content:none;border:0}}
+.cover,.contents{page:full}
+*{box-sizing:border-box}
+:root{--red:#df0a1e;--ink:#101010;--maroon:#81171a;--deep:#3a0f17;--mid:#c3161e;--grey:#6b6b6b;--line:#e4e4e4}
+body{margin:0;font-family:'DM Sans','Inter',sans-serif;color:var(--ink);font-size:9.8pt;line-height:1.48}
+h1,h2,h3,.hf{font-family:'IBM Plex Sans','Inter',sans-serif}
+.page{width:210mm;height:296.5mm;position:relative;overflow:hidden;page-break-after:always}
+.cover{background:var(--red);color:#fff}
+.cover svg.logo{position:absolute;left:18mm;top:18mm;height:14mm;width:auto}
+.cover h1{position:absolute;left:18mm;bottom:70mm;margin:0;font-size:58pt;line-height:1;font-weight:700;letter-spacing:-1px}
+.cover .sub{position:absolute;left:18mm;bottom:50mm;font-size:15pt;font-weight:300;font-family:'IBM Plex Sans','Inter',sans-serif}
+.cover .date{position:absolute;left:18mm;bottom:18mm;font-size:10pt;letter-spacing:.12em;text-transform:uppercase}
+.arcs{position:absolute;right:-60mm;top:40mm;width:170mm;height:170mm}
+.blk{position:absolute}
+.contents{background:#fff}
+.contents .left{position:absolute;left:0;top:0;bottom:0;width:70mm;background:var(--ink);color:#fff;padding:18mm 12mm}
+.contents .left h2{font-size:30pt;margin:0;font-weight:700}
+.contents .left .bar{width:14mm;height:3mm;background:var(--red);margin-top:6mm}
+.contents ol{position:absolute;left:84mm;top:18mm;right:16mm;margin:0;padding:0;list-style:none}
+.contents li{display:flex;gap:5mm;align-items:baseline;padding:4.2mm 0;border-bottom:1px solid var(--line);font-size:12pt}
+.contents li b{color:var(--red);font-family:'IBM Plex Sans','Inter',sans-serif;min-width:9mm;font-size:14pt}
+.contents li span.t{flex:1}
+.contents li span.p{color:var(--grey);font-size:10pt}
+.sec{page-break-before:always}
+.band{background:var(--red);color:#fff;height:46mm;position:relative;padding:12mm 18mm;overflow:hidden;break-inside:avoid}
+.band .n{font-family:'IBM Plex Sans','Inter',sans-serif;font-size:54pt;font-weight:700;line-height:1;display:inline-block;vertical-align:middle;margin-right:8mm}
+.band h2{display:inline-block;vertical-align:middle;margin:0;font-size:26pt;font-weight:700;max-width:115mm;line-height:1.1}
+.band .b{position:absolute}
+.content{padding:8mm 18mm 0}
+.content h3{font-family:'DM Sans','Inter',sans-serif;font-weight:700;color:var(--red);font-size:13pt;margin:5mm 0 1.5mm;break-after:avoid}
+.content p{margin:0 0 3mm}
+.content ul,.content ol{margin:0 0 4mm;padding-left:6mm}
+.content li{margin-bottom:1.6mm}
+.content ol{list-style:none;counter-reset:n;padding-left:0}
+.content ol>li{counter-increment:n;position:relative;padding-left:9mm;break-inside:avoid}
+.content ol>li:before{content:counter(n);position:absolute;left:0;top:.05em;width:6mm;height:6mm;border-radius:50%;background:var(--red);color:#fff;font-size:8.5pt;font-weight:700;text-align:center;line-height:6mm}
+.content ul{list-style:none;padding-left:0}
+.content ul>li{position:relative;padding-left:5mm}
+.content ul>li:before{content:"";position:absolute;left:0;top:.55em;width:2mm;height:2mm;background:var(--red)}
+.content strong{font-weight:700}
+.content table{border-collapse:collapse;width:100%;margin:2mm 0 5mm;font-size:9.5pt;break-inside:avoid}
+.content th{background:var(--ink);color:#fff;text-align:left;padding:2mm 3mm}
+.content td{padding:2mm 3mm;border-bottom:1px solid var(--line);vertical-align:top}
+.content code{background:#f3f3f3;padding:0 1mm;font-size:9.5pt}
+.start .band{background:var(--ink)}
+.start .band .n{color:var(--red)}
+.start .content ol>li{font-size:11.5pt}
+.rh{position:absolute;top:0;left:0;right:0}
+.run{position:fixed}
+</style><body><div class="page cover"><svg class="logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" x="0px" y="0px" viewBox="0 0 841.9 497.3" style="enable-background:new 0 0 841.9 497.3;" xml:space="preserve"><style type="text/css">	.st0{fill:#FFFFFF;}</style><g>	<path class="st0" d="M724.9,251.8l9.8-4.4c0.7-0.3,1.5-0.2,2.1,0.2l21.4,13.9c1.4,0.9,1.4,3.1-0.1,3.9l-8.5,4.9  c-0.7,0.4-1.6,0.4-2.3-0.1l-22.7-14.4C723.1,254.8,723.2,252.5,724.9,251.8"></path>	<path class="st0" d="M465.5,354.3c-3.9-1.9-6.2-15.3,4.1-34.8c8-15.1,17.6-20.8,22.6-22.6c5.2-1.9,8.9-0.1,10,1  c5.6,5.8,0.6,20-6.5,31.4C487.1,343.2,471.1,357,465.5,354.3 M806,352.8c-8.6,14.7-20.3,14-29.1,8.3c-7.7-5-13.3-26-16.2-34.6  c-3.1-9-11.7-19.9-21.8-19.9c-13.1,0-30.8,36.5-35.8,42.1c-11.6,12.8-38.3,28-60.3,14.1c-12.1-7.6-28.3-29-28.3-29  s49.6-49.4,51.6-52.3l-18.8-19.1c-2.3,3.8-48.6,51.6-50.4,51.6c-1.8,0-22.7-34.8-25.3-38c0,0-31.1-3-32.5-1.6  c0,0,40.1,55.2,38.8,57.5c-2,3.3-45.5,34.9-56,40.5c-21.1,11.1-38.5,6.4-38.5,6.4s30.2-25.5,40.3-45.5c5-9.8,23.1-42.2-16.6-60.4  c-23.6-10.8-44.4-1.6-63.6,26.8c-21.1,31-4.3,75.7-4.3,75.7s-23.6,16.7-44.6,1.3c-15.4-11.2-26.2-49.6-28.8-85.2  c-3.9-52.6,6.8-158.4,6.8-158.4l-47.3-13.9c0,0,6,51.3-5.2,93.9c-26.9,102.3-97,128.4-104.6,129.3c-7.6,0.9-7.6-52.3-59.1-145  C122.7,136.8,60,68.7,60.9,65.5c0.9-3.2,81.3-26.5,150.3-28.4c96.8-2.7,185.3,3,191.5,9.3c6.3,6.4-25.5,16.6,6.7,31.4  c15.1,6.9,27.3-5.9,32.9-13.5c2.3-3.2,2.1-7.6-0.4-10.5C430.3,40.4,387.4,7.2,249,11.9C76.6,17.8,15.7,44.2,12.1,50.1  s107.1,130.9,138,206.3c24.7,60.2,32.3,97.3,31.4,101.4c-0.9,4.1-44.4,1.4-44.4,1.4l13,21.4l35.4-1c0,0,3.9,24.3-1.8,42.7  c-7.9,25.4-22.8,37.7-22.8,42.3l30.9,17.7c0,0,19.5-14.3,25.5-54.6c3-20.2,0-47.7,0-47.7s30.1-8.8,60.5-31.4  c30.2-22.5,52.4-60,52.4-60s16.5,73.6,37.7,94.9c25.9,25.9,59,26.5,94,11.5c8.1,3.9,15.5,6.6,22.1,8.5c19.5,5.7,40.4,2.5,57.6-8.5  c16.4-10.4,41-30.3,55.5-43.4c2.7-2.4,37.2,42.7,83.1,37.6c30.9-3.4,42.8-19,55.6-39c6.6-10.2,13.7,20.7,45.9,32.5  c18.4,6.7,37.5,0.2,44.3-11C837,354,814.7,337.9,806,352.8"></path></g></svg>
+<svg class="arcs" viewBox="0 0 170 170"><circle cx="85" cy="85" r="10" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="19" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="28" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="37" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="46" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="55" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="64" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="73" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/><circle cx="85" cy="85" r="82" fill="none" stroke="#fff" stroke-width=".6" opacity=".55"/></svg>
+<div class="blk" style="right:0;top:200mm;width:30mm;height:30mm;background:#81171a"></div>
+<div class="blk" style="right:30mm;top:230mm;width:30mm;height:30mm;background:#3a0f17"></div>
+<div class="blk" style="right:0;top:230mm;width:30mm;height:30mm;background:#c3161e"></div>
+<div class="blk" style="right:0;top:260mm;width:30mm;height:37mm;background:#fff"></div>
+<h1>How-to<br>Guide</h1><div class="sub">Flexi Expenses · Narrow Aisle</div><div class="date">6 October 2026</div></div><div class="page contents"><div class="left"><h2>Contents</h2><div class="bar"></div></div><ol><li><b>→</b><span class="t">Start here: 5 minutes</span><span class="p">3</span></li><li><b>1</b><span class="t">Welcome</span><span class="p">4</span></li><li><b>2</b><span class="t">Getting started</span><span class="p">5</span></li><li><b>3</b><span class="t">For everyone</span><span class="p">6</span></li><li><b>4</b><span class="t">For approvers</span><span class="p">9</span></li><li><b>5</b><span class="t">For finance</span><span class="p">10</span></li><li><b>6</b><span class="t">For admins</span><span class="p">12</span></li><li><b>7</b><span class="t">Records and compliance</span><span class="p">14</span></li><li><b>8</b><span class="t">Troubleshooting and FAQs</span><span class="p">15</span></li><li><b>9</b><span class="t">Quick reference</span><span class="p">16</span></li></ol></div><section class="sec start" id="s0"><div class="band"><span class="n">→</span><h2>Start here: 5 minutes</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>New to Flexi Expenses? This is all you need on day one.</p>
+<ol>
+<li>Sign in with your Narrow Aisle email and password.</li>
+<li>On <strong>Home</strong>, tap <strong>Take a photo of a receipt</strong>. Hold the receipt inside the frame and wait a second. The app takes the photo itself, reads it and fills in the details.</li>
+<li>Check the amount and category, then tap <strong>Save</strong>.</li>
+<li>When you have a few saved, tap <strong>Create report</strong> on Home, then <strong>Submit for approval</strong>.</li>
+<li>You will get an email when it is approved and when it is paid.</li>
+</ol>
+<p>That is everything most people ever need. Anything else you see under <strong>Show all tools</strong> is for finance and admins.</p></div></section><section class="sec" id="s1"><div class="band"><span class="n">1</span><h2>Welcome</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>Flexi Expenses is the Narrow Aisle expenses app. It replaces paper receipts and spreadsheets: you photograph a receipt, the app reads it for you, and the expense goes through approval to payment, with every step recorded.</p>
+<p>It works in any modern browser and can be installed on a phone like an app. It uses the same login as the Service Portal.</p>
+<h3>The four roles</h3>
+<p>Every person in a workspace has one role. The menu you see depends on it.</p>
+<ul>
+<li><strong>Member</strong> – adds expenses, builds reports, submits them for approval.</li>
+<li><strong>Approver</strong> – everything a member can do, plus reviews and approves or rejects other people's reports.</li>
+<li><strong>Finance</strong> – pays approved reports, exports to accounting, and manages bills, invoices, budgets and analytics.</li>
+<li><strong>Admin</strong> – manages the team, roles, policy, categories and rules for the workspace.</li>
+</ul>
+<h3>What you need</h3>
+<ul>
+<li>A Narrow Aisle login (the same email and password as the Service Portal).</li>
+<li>A phone with a camera for scanning receipts, or a computer for uploading photos and PDFs.</li>
+<li>An invite from an admin, unless you are setting up the first workspace.</li>
+</ul></div></section><section class="sec" id="s2"><div class="band"><span class="n">2</span><h2>Getting started</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><h3>Signing in</h3>
+<ol>
+<li>Open the Flexi Expenses address in your browser.</li>
+<li>Enter your email and password. These are the same details you use for the Service Portal.</li>
+<li>New to Narrow Aisle? Choose to create an account, confirm your email, then sign in.</li>
+</ol>
+<p>Forgotten your password? Use the reset link on the sign-in card. Once signed in you can change it any time in <strong>Settings → Change password</strong>.</p>
+<h3>Joining a workspace</h3>
+<p>If an admin has invited your email address, the invite is accepted automatically the first time you sign in and you land in that workspace. If you belong to more than one workspace, pick the one you want from the workspace switcher.</p>
+<p>No invite and no workspace? You will be offered the option to create one. The person who creates it becomes its admin.</p>
+<h3>Setting up a new workspace (admins)</h3>
+<ol>
+<li>Name the workspace.</li>
+<li>Open <strong>Settings</strong> and fill in the policy (see the Admin section): receipt limit, retention years and, if you are VAT registered, your VAT number.</li>
+<li>Add or review categories and auto-categorise rules.</li>
+<li>Invite your team and give each person a role.</li>
+</ol>
+<p>The dashboard shows a <strong>Getting started</strong> checklist to walk you through this. You can hide it once you are done.</p>
+<h3>Installing the app on your phone</h3>
+<p>Installing gives you a full-screen app icon and makes offline use more reliable.</p>
+<ul>
+<li><strong>Android (Chrome):</strong> open the menu (three dots) and choose <strong>Install app</strong>.</li>
+<li><strong>iPhone (Safari):</strong> tap Share, then <strong>Add to Home Screen</strong>.</li>
+</ul>
+<p>If you installed an older version under the previous name, remove it and install again so the new name and icon appear.</p>
+<p>Important: open the app at least once while online before relying on it offline.</p></div></section><section class="sec" id="s3"><div class="band"><span class="n">3</span><h2>For everyone</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>This section covers what every member does day to day: get an expense in, put it on a report and send it off.</p>
+<h3>Simple view and all tools</h3>
+<p>The app opens in <strong>simple view</strong>: a short menu (Home, Expenses, Emailed receipts, Reports, plus Approvals and Team for those who need them) and a Home page with three big buttons. At the bottom of the menu, <strong>Show all tools</strong> reveals everything else (VAT, Analytics, Bills, Invoices, Trips and more). <strong>Show simple view</strong> switches back. The choice is remembered on each device.</p>
+<h3>The normal flow</h3>
+<p>Scan or add an expense → check the details → <strong>Save</strong> → tick the expenses → <strong>Create report</strong> → <strong>Submit for approval</strong> → approver approves → finance pays.</p>
+<h3>Scan a receipt</h3>
+<ol>
+<li>On Home tap <strong>Take a photo of a receipt</strong> (or <strong>Scan receipt</strong> on the Expenses page). The camera opens with a frame.</li>
+<li>Hold the receipt flat and inside the frame. A green outline snaps to the paper. Hold still for about a second and the photo is taken for you. You can also tap the big round button.</li>
+<li>The photo is straightened and cropped, then read. The app fills in merchant, date, total, VAT and category. Check each field.</li>
+<li>Confirm the category, add a note if useful, and tap <strong>Save</strong>.</li>
+</ol>
+<p>The app tries the AI reader first, which copes best with crumpled and photographed receipts. If AI reading is switched off or unavailable it falls back to on-device text recognition, which is less accurate, so check the amounts more carefully. PDFs can also be uploaded.</p>
+<p>Foreign currency: choose the currency and the app fetches the exchange rate for the receipt date.</p>
+<h3>Camera tips</h3>
+<ul>
+<li><strong>Auto-capture:</strong> turn it off with the chip at the top if you prefer to press the button yourself.</li>
+<li><strong>Scanner look:</strong> turns the photo black-and-white with boosted contrast, which makes faded till receipts readable. Switch the chip off to keep colour.</li>
+<li><strong>Warnings:</strong> the camera tells you if it is too dark (tap the light), too far away, or too blurry.</li>
+<li><strong>Long receipts:</strong> turn on <strong>Long receipt</strong>, photograph the top, then each next part with a small overlap, and tap <strong>Done</strong>. The parts are joined into one image.</li>
+<li><strong>Zoom and focus:</strong> pinch to zoom and tap to focus, on phones that support it.</li>
+<li><strong>Duplicates:</strong> if you scan something you have already entered, the app warns you.</li>
+<li><strong>Gallery button:</strong> pick an existing photo or PDF instead.</li>
+</ul>
+<h3>Add multiple receipts at once</h3>
+<ol>
+<li>Tap <strong>Multiple receipts</strong> on the Expenses page. The camera opens and stays open.</li>
+<li>Take a photo of each receipt in turn. The app reads each one straight away and shows a line such as “Shell · £72.51 ✓”. With auto-capture on, just move to the next receipt. Tap <strong>Done</strong> when finished (or use the gallery button to pick many photos at once).</li>
+<li>Review the list, fix anything that looks wrong and drop any you do not want.</li>
+<li>Save them all in one go.</li>
+</ol>
+<p>Useful after a trip when you have a pile of receipts.</p>
+<h3>Mileage</h3>
+<ol>
+<li>Tap <strong>Mileage</strong>.</li>
+<li>Enter the <strong>from</strong> and <strong>to</strong> places. Both are required. The app works out the road distance for you and you can correct it.</li>
+<li>Save. The amount is calculated at HMRC rates: 45p a mile, then 25p a mile once you pass 10,000 miles in the tax year.</li>
+</ol>
+<p>The distance lookup uses free public map services, so if it fails, enter the miles by hand.</p>
+<p><strong>Saved journeys:</strong> for trips you do often, enter from, to and miles, then tap <strong>Save this journey</strong>. Next time pick it from <strong>Saved journeys</strong> and everything fills in. Remember to tick round trip if it applies.</p>
+<p><strong>Track a journey with your phone:</strong> instead of typing places, open <strong>Add a mileage journey</strong> and tap <strong>Start tracking by GPS</strong> when you set off. A bar at the bottom shows the miles so far. Tap <strong>Stop</strong> when you arrive and the claim opens with From, To and Miles filled in. Add the business purpose in Notes and save. Allow location for the site when the browser asks.</p>
+<p>GPS tracking only works while the app is open and the screen is on (the app keeps the screen awake), so put the phone in a holder. If you lock the phone or switch to another app, part of the journey may be missed, so check the miles look right. Use <strong>Cancel</strong> to throw a tracked journey away.</p>
+<h3>Manual expenses and per diem</h3>
+<p>Tap <strong>+ New expense</strong> to enter one by hand: merchant, date, amount, category, and a receipt photo. At the top of the form switch between <strong>Expense</strong>, <strong>Mileage</strong> and <strong>Per diem</strong>. For a per diem, enter the number of days and the daily rate and the app works out the total. The type cannot be changed once the expense is saved.</p>
+<h3>Receipt rules</h3>
+<ul>
+<li>Attach a receipt to every expense where you can. Expenses without one are flagged.</li>
+<li>Once an expense is submitted, its receipt is <strong>locked</strong>: it cannot be replaced or removed. Any change to a locked expense is written to the audit log.</li>
+<li>Keep photos sharp. Blurred ones are flagged as unclear and may be sent back.</li>
+<li>You can throw away the paper receipt once the digital copy is saved and readable, but see the Records and compliance section first.</li>
+</ul>
+<h3>Reports</h3>
+<ol>
+<li>Go to <strong>Expenses</strong>, tick the unreported expenses (or use select-all) and tap <strong>Create report</strong>. You can also add to an existing draft report.</li>
+<li>Open the report, check the total and add a title.</li>
+<li>Tap <strong>Submit for approval</strong>.</li>
+</ol>
+<p>A submitted report can be pulled back with <strong>Recall to draft</strong> while it is still waiting for approval. If it is rejected, fix what was queried and submit again. Reports can also be exported or printed with <strong>Export</strong> and <strong>Print / PDF</strong>.</p>
+<h3>Trips</h3>
+<p>Use <strong>+ New trip</strong> to group the expenses for a journey. Assign expenses to the trip and they stay together when you build the report.</p>
+<p>Admins and approvers can set a <strong>budget</strong> on a trip. The trip page shows spend against it, and anyone adding an expense to that trip is warned when it would go over.</p>
+<h3>Flags</h3>
+<p>The app flags anything the approver may want to look at, such as a missing receipt or a possible duplicate. A flag is not a rejection, but add a note explaining it. The full list is in the Quick reference.</p>
+<h3>Notifications and reminders</h3>
+<p>The bell at the top shows a number when something needs you: a report waiting for approval, or your report approved, rejected or paid. Tap an alert to go straight there. The Home page also reminds you of expenses that have not been put on a report for over a week.</p>
+<p>If email alerts are set up, the same alerts also arrive by email, and on weekday mornings approvers are reminded of reports waiting two days or more. On Mondays staff are reminded of expenses not yet put on a report. You can switch emails off in <strong>Settings → Your profile</strong>.</p>
+<h3>Emailed receipts (Receipt inbox)</h3>
+<p>Got a receipt as an email, such as an online order or a booking? Forward it from your work email address to the company receipts mailbox (your admin will tell you the address). Within about five minutes it appears under <strong>Emailed receipts</strong>, marked <strong>to check</strong>. Open it, confirm the details and save. Attached photos and PDFs are used as they are, otherwise the email itself is turned into a PDF. You must send from the email address you use in Flexi Expenses.</p>
+<h3>Smarter categories</h3>
+<p>The app learns. If you file a merchant under a category, the next claim from that merchant (by anyone in the team) is categorised the same way. Admin rules always win.</p>
+<h3>Working offline</h3>
+<p>With no signal you can still open the app and <strong>add new expenses</strong>, including scanned receipts. They show as queued and upload automatically when you are back online. You can also tap <strong>Sync now</strong> in Settings.</p>
+<ul>
+<li>Existing expenses you have already loaded stay readable.</li>
+<li>Editing, submitting and approving need a connection.</li>
+<li>The receipt text is read once you are back online if it could not be read offline.</li>
+<li>Signing out with items still queued asks you to confirm, because they would be lost.</li>
+</ul></div></section><section class="sec" id="s4"><div class="band"><span class="n">4</span><h2>For approvers</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>Approvers, finance and admins see an <strong>Approvals</strong> item in the menu listing reports waiting for a decision. A badge shows how many are waiting.</p>
+<h3>Reviewing a report</h3>
+<ol>
+<li>Open <strong>Approvals</strong> and choose a report.</li>
+<li>Check each expense: the amount, the category, the date and the receipt (tap it to view in full).</li>
+<li>Read any flags and the member's notes.</li>
+<li>Use the comments to ask a question if something is unclear.</li>
+</ol>
+<h3>Deciding</h3>
+<ul>
+<li><strong>Approve</strong> – passes the report on to finance for payment.</li>
+<li><strong>Reject…</strong> – returns it to the member. You must give a reason, which the member sees.</li>
+<li><strong>Approve selected</strong> – on the list, tick several reports and approve them together.</li>
+</ul>
+<p>You cannot approve your own reports. Ask another approver or an admin.</p>
+<h3>What to look out for</h3>
+<ul>
+<li><strong>Missing receipt</strong> or <strong>receipt unclear</strong>: ask for a better copy before approving.</li>
+<li><strong>Possible duplicate</strong>: compare with the earlier claim.</li>
+<li><strong>Over limit</strong> or <strong>over category limit</strong>: check the reason given.</li>
+<li><strong>Old expense</strong>: claimed long after the date, so check it is genuine.</li>
+</ul>
+<p>Every approval and rejection is written to the audit log with your name and the time.</p></div></section><section class="sec" id="s5"><div class="band"><span class="n">5</span><h2>For finance</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>Finance and admins see a <strong>Finance</strong> group in the menu: Bills to pay, Invoices, Budgets and Analytics. They can also pay reports.</p>
+<h3>Paying expense reports</h3>
+<ol>
+<li>Open <strong>Reports</strong> and filter to approved reports.</li>
+<li>Open a report and tap <strong>Mark reimbursed</strong> once the person has been paid, or tick several reports and use <strong>Mark selected paid</strong>.</li>
+<li>To pay by bank transfer in bulk, tick the reports and tap <strong>Download payment file (CSV)</strong>, then upload it to your bank.</li>
+</ol>
+<h3>Exporting your figures</h3>
+<p>On a report, or on the Expenses list, choose a format and tap <strong>Export</strong>:</p>
+<ul>
+<li><strong>Excel</strong> – a workbook with a summary and a sheet of every expense.</li>
+<li><strong>Excel + receipts (ZIP)</strong> – the workbook plus every receipt image in one download.</li>
+<li><strong>CSV</strong> – a plain file with every field, including supplier VAT number, receipt time, receipt fingerprint and receipt file path, for any other system.</li>
+</ul>
+<p>Use <strong>Print / PDF</strong> for a paper or PDF copy of a report.</p>
+<h3>Month-end email</h3>
+<p>On the 1st of each month, Finance and Admins receive an email with last month’s expenses as an Excel file attached, plus the totals by category. It is the quick version of the pack below, without the receipt images.</p>
+<h3>Month-end pack</h3>
+<p>In <strong>Analytics</strong> (or the <strong>Export</strong> menu on Expenses and Reports) choose <strong>Excel + receipts (ZIP)</strong>. You get one folder containing an Excel workbook (Summary, Expenses, By category, By month and By employee, with the totals as live formulas), a README, and every receipt photo named by date, merchant and amount. It replaces the paper receipts and the hand-typed spreadsheet. Expenses still marked “to check” are left out.</p>
+<h3>Bills to pay</h3>
+<p>For supplier bills you owe.</p>
+<ol>
+<li>Tap <strong>+ Capture bill</strong>, then photograph or upload the bill. The AI reader fills in supplier, dates, amount and VAT.</li>
+<li>Check the details and save. Tap <strong>Submit for approval</strong> if your process needs a second pair of eyes.</li>
+<li>An approver uses <strong>Approve</strong> or <strong>Reject</strong>.</li>
+<li>Use <strong>Mark paid</strong> when it is paid, or <strong>Download payment run (CSV)</strong> to pay several at once.</li>
+<li><strong>View attached bill</strong> shows the original document at any time.</li>
+</ol>
+<h3>Invoices</h3>
+<p>For invoices you send to customers.</p>
+<ol>
+<li>Tap <strong>+ New invoice</strong>, choose the customer and use <strong>+ Add line</strong> for each item. Totals and VAT are calculated for you.</li>
+<li>Invoice numbers are issued automatically in sequence, so there are no gaps or duplicates.</li>
+<li><strong>Email</strong> it to the customer, or <strong>Print / PDF</strong>, then <strong>Mark as sent</strong>.</li>
+<li>When the money arrives, <strong>Mark paid</strong>.</li>
+<li><strong>Void</strong> cancels an invoice. It is kept on record, never deleted.</li>
+</ol>
+<h3>Budgets</h3>
+<p>Tap <strong>+ New budget</strong> to set a spending limit for a category or period. The Budgets page shows spend against each budget so you can see overspends early.</p>
+<h3>Analytics</h3>
+<p>See spend by category, person and month, and use <strong>Export table</strong> to take the figures into a spreadsheet.</p>
+<h3>VAT summary</h3>
+<p>Open <strong>VAT summary</strong> for a quarter (or any range) to see the VAT you can reclaim on expenses, the VAT on your invoices, and the estimated amount to pay or get back. A <strong>Fix these</strong> list shows expenses where VAT is at risk, for example no receipt or no full VAT invoice. Tap one to fix it, then use <strong>Export detail</strong> for your accountant. It is an estimate: have your accountant check it before filing.</p>
+<h3>Card matching</h3>
+<p>Open <strong>Card matching</strong> and upload your company card or bank statement as a CSV.</p>
+<ol>
+<li>Tap <strong>Upload statement (CSV)</strong>. Each spend line is matched to a company-card expense by amount, date and name.</li>
+<li><strong>No receipt yet</strong> lists statement lines with no expense. Use <strong>match…</strong> to link one by hand or <strong>ignore</strong> for things like bank fees.</li>
+<li><strong>Not on statement</strong> lists company-card expenses that did not appear on the statement.</li>
+<li>Uploading the same file again does not create duplicates. <strong>Export unmatched</strong> gives you a list to chase.</li>
+</ol></div></section><section class="sec" id="s6"><div class="band"><span class="n">6</span><h2>For admins</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>Admins manage the workspace from <strong>Team</strong>, <strong>Audit log</strong> and <strong>Settings</strong>.</p>
+<h3>Team and roles</h3>
+<ol>
+<li>Open <strong>Team</strong> and enter the person's email, pick a role and tap <strong>Invite</strong>.</li>
+<li>They are added automatically when they sign in with that email. You can also use <strong>share</strong> to copy an invite link, or <strong>revoke</strong> to cancel an invite not yet used.</li>
+<li>To change someone's role, edit it in the team list. Use <strong>Remove</strong> to take someone out of the workspace. Their past expenses and the audit trail are kept.</li>
+</ol>
+<p>Give the lowest role that does the job: most people are Members, a few are Approvers, and one or two are Finance.</p>
+<h3>Workspace policy</h3>
+<p>In <strong>Settings</strong> set the rules for everyone, then tap <strong>Save policy</strong>:</p>
+<ul>
+<li><strong>Receipt required above</strong> – the amount over which a receipt is expected.</li>
+<li><strong>Spending limits</strong> – overall and per category. Going over raises an over-limit flag.</li>
+<li><strong>Retention years</strong> – how long records are kept. The minimum is 6 years and it cannot be set lower.</li>
+<li><strong>VAT number</strong> – your company VAT number, used on exports and records.</li>
+<li><strong>AI receipt reading</strong> – on by default. Switch it off if you do not want receipt images sent to the AI service. The app then uses on-device text recognition instead.</li>
+</ul>
+<p>Two more settings sit in the same card:</p>
+<ul>
+<li><strong>AI receipt reads per day</strong> – a daily cap for the whole workspace. Once it is used up, receipts are read on the device until the next day.</li>
+<li>
+<p><strong>Approvers can approve reports up to</strong> – leave blank for no limit. Above this amount a report must be approved by Finance or an Admin.</p>
+</li>
+<li>
+<p><strong>Receipt email address</strong> – the mailbox staff forward receipts to. Enter it here so the app can show it.</p>
+</li>
+</ul>
+<p>The emails, reminders and email-in are run by a small Google Apps Script set up once by whoever looks after the system. If emails stop arriving, ask them to run <strong>testConnection</strong> in that script.</p>
+<h3>Categories and auto-categorise rules</h3>
+<ul>
+<li>Under categories tap <strong>+ Add</strong> to create one, with an optional spending limit.</li>
+<li>Under rules tap <strong>+ Add</strong> to map a merchant name to a category. For example, any receipt from "Shell" goes to Fuel. New expenses are categorised automatically when the merchant matches.</li>
+</ul>
+<p>Each category can also have a short <strong>guidance note</strong> (for example “Meals: no alcohol, receipt always needed”). It shows on the expense form as soon as someone picks the category.</p>
+<h3>Audit log</h3>
+<p>The <strong>Audit log</strong> lists who did what and when: submissions, approvals, rejections, payments, edits to locked expenses and deletions. It cannot be edited. Use it to answer questions about any claim.</p>
+<h3>Your own account</h3>
+<p>In Settings you can also <strong>Change password</strong>, <strong>Sign out</strong>, <strong>Download my data</strong>, read the <strong>Privacy &amp; records notice</strong>, and use <strong>Sync now</strong> to push any offline items.</p>
+<h3>Deleting a workspace</h3>
+<p><strong>Delete workspace</strong> is blocked while records are inside the retention period. This protects you from losing records you are legally required to keep.</p></div></section><section class="sec" id="s7"><div class="band"><span class="n">7</span><h2>Records and compliance</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p>The app is built to support UK record-keeping rules. This section explains what it does for you.</p>
+<h3>What is kept</h3>
+<ul>
+<li>Every expense, report, bill and invoice, with its receipt or attached document.</li>
+<li>A fingerprint (hash) of each receipt file, plus who uploaded it and when, so a copy can be shown to be unchanged.</li>
+<li>The supplier VAT number where the receipt shows one.</li>
+<li>A full audit log of approvals, payments, edits and deletions.</li>
+</ul>
+<h3>How long</h3>
+<p>Records are kept for at least <strong>6 years</strong>. Within that period, expenses, reports, bills and invoices cannot be deleted, receipts cannot be removed from storage, and a workspace cannot be deleted. An admin can set a longer period but not a shorter one.</p>
+<h3>Receipts and the paper original</h3>
+<ul>
+<li>Once saved, the digital receipt is linked to the person who uploaded it. Finance and approvers can see every receipt in the workspace.</li>
+<li>After an expense is submitted the receipt is <strong>locked</strong> and any later change is logged.</li>
+<li>HMRC generally accepts a digital copy in place of the paper receipt if it is legible and a complete, unaltered copy. Check the photo is clear before you throw the paper away.</li>
+<li>Please confirm with Narrow Aisle's accountant that this approach is acceptable for your VAT and tax position. The app helps you keep good records but is not tax advice.</li>
+</ul>
+<h3>VAT</h3>
+<p>The app flags VAT claims that have no receipt, or where a full VAT invoice is needed, or where the receipt is unclear. Fix the flag or add a note before submitting.</p>
+<h3>Mileage</h3>
+<p>Mileage claims must have a from and a to place. Rates follow HMRC approved mileage rates.</p>
+<h3>Privacy</h3>
+<p>Receipt images are stored in a private area that only members of your workspace can reach. If AI reading is on, the image is sent to Anthropic to read the text and is not used to build a public record. Anyone can use <strong>Download my data</strong> in Settings to get their own records.</p></div></section><section class="sec" id="s8"><div class="band"><span class="n">8</span><h2>Troubleshooting and FAQs</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><p><strong>The scan got the amount or date wrong.</strong> Fix the field by hand before saving. For best results lay the receipt flat, use good light and fill the frame. If AI reading is off, on-device reading is less accurate.</p>
+<p><strong>The camera does not open.</strong> Allow camera access for the site in your browser or phone settings. You can also choose a photo from your gallery instead.</p>
+<p><strong>It says the app is already installed.</strong> Remove the old copy from your home screen and install again from the browser menu.</p>
+<p><strong>I am offline. Can I still claim?</strong> Yes, add new expenses and they queue and upload when you are back online. Editing, submitting and approving need a connection. Tap <strong>Sync now</strong> in Settings if they do not go by themselves.</p>
+<p><strong>My offline items disappeared.</strong> Signing out, clearing browser data, or leaving an iPhone unused for about a week can clear queued items. Always sync before signing out.</p>
+<p><strong>I cannot edit or delete an expense.</strong> Submitted expenses have locked receipts, and records inside the retention period cannot be deleted. Recall the report to draft if you need to change it, or ask an admin.</p>
+<p><strong>I cannot approve a report.</strong> You cannot approve your own. Ask another approver. Check you have the Approver, Finance or Admin role.</p>
+<p><strong>Mileage distance did not fill in.</strong> The distance lookup uses free public map services which can be slow or unavailable. Type the miles in by hand.</p>
+<p><strong>I forgot my password.</strong> Use the reset link on the sign-in card. It is the same login as the Service Portal.</p>
+<p><strong>I do not see the menu items I expect.</strong> The menu depends on your role. Ask an admin to change it in Team.</p>
+<p><strong>Foreign currency looks wrong.</strong> The rate is taken for the receipt date from a public exchange-rate service. Check the date and currency, and correct the amount if needed.</p>
+<p><strong>The camera will not take the photo by itself.</strong> It needs the whole receipt in the frame, steady and well lit. Move closer, turn on the light, or tap the round button. Auto-capture can be switched off with the chip at the top.</p>
+<p><strong>I forwarded a receipt but it is not in Emailed receipts.</strong> It can take up to five minutes. Check you sent it from the email address you use in Flexi Expenses, and that it went to the company receipts mailbox. Mail from unknown addresses is ignored.</p>
+<p><strong>I am not getting emails.</strong> Check <strong>Settings → Your profile</strong> that email alerts are ticked, and look in your junk folder.</p></div></section><section class="sec" id="s9"><div class="band"><span class="n">9</span><h2>Quick reference</h2>
+<div class="b" style="right:0;top:0;width:16mm;height:16mm;background:#c3161e"></div>
+<div class="b" style="right:16mm;top:16mm;width:16mm;height:16mm;background:#81171a"></div>
+<div class="b" style="right:0;top:16mm;width:16mm;height:16mm;background:#3a0f17"></div>
+<div class="b" style="right:32mm;top:32mm;width:16mm;height:16mm;background:#fff;opacity:.9"></div></div><div class="content"><h3>Who can do what</h3>
+<ul>
+<li><strong>Member</strong> – add expenses, scan, mileage, trips, reports, submit and recall.</li>
+<li><strong>Approver</strong> – all of the above, plus Approvals, Team view and Audit log.</li>
+<li><strong>Finance</strong> – all of the above, plus pay reports, bills, invoices, budgets, analytics and exports.</li>
+<li><strong>Admin</strong> – everything, plus settings, roles, categories, rules and workspace deletion.</li>
+</ul>
+<h3>Report statuses</h3>
+<ul>
+<li><strong>Draft</strong> – being put together, still editable.</li>
+<li><strong>Submitted</strong> – waiting for an approver. Can be recalled.</li>
+<li><strong>Approved</strong> – passed, waiting to be paid.</li>
+<li><strong>Rejected</strong> – sent back with a reason. Fix and resubmit.</li>
+<li><strong>Reimbursed</strong> – paid. Final.</li>
+</ul>
+<h3>Flags</h3>
+<ul>
+<li><strong>No receipt</strong> – nothing attached to the expense.</li>
+<li><strong>Over limit</strong> – more than the workspace limit.</li>
+<li><strong>Over category limit</strong> – more than that category's limit.</li>
+<li><strong>Possible duplicate</strong> – same merchant, date and amount as another expense.</li>
+<li><strong>Old expense</strong> – claimed long after the receipt date.</li>
+<li><strong>VAT, no receipt</strong> – VAT claimed without a receipt.</li>
+<li><strong>VAT invoice needed</strong> – a full VAT invoice is required.</li>
+<li><strong>Receipt unclear</strong> – the image is hard to read.</li>
+</ul>
+<h3>Handy buttons</h3>
+<ul>
+<li>Home: <strong>Take a photo of a receipt</strong>, <strong>Add an expense by typing</strong>, <strong>Add a mileage journey</strong>, <strong>Create report</strong>.</li>
+<li>Expenses: <strong>Scan receipt</strong>, <strong>Multiple receipts</strong>, <strong>Export</strong>.</li>
+<li>Report: <strong>Submit for approval</strong>, <strong>Recall to draft</strong>, <strong>Approve</strong>, <strong>Reject…</strong>, <strong>Mark reimbursed</strong>.</li>
+<li>Settings: <strong>Save policy</strong>, <strong>Sync now</strong>, <strong>Download my data</strong>.</li>
+</ul></div></section></body></html>
