@@ -139,3 +139,26 @@ svg.i{vertical-align:-3px;flex:none}
 #nav .moretools{margin-top:14px;opacity:.75;font-size:13px}
 @media(max-width:700px){.bigacts{grid-template-columns:1fr}.btn.big{flex-direction:row;justify-content:flex-start;min-height:64px;padding:14px 16px;text-align:left}.steps3{grid-template-columns:1fr}}
 .simpletb #f_cat,.simpletb #f_who,.simpletb #f_from,.simpletb #f_to,.simpletb .chk{display:none}
+
+/* live camera overlay */
+body.camopen{overflow:hidden}
+.cam{position:fixed;inset:0;z-index:9999;background:#000;color:#fff;display:flex;flex-direction:column}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-mask{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.cam-frame{position:relative;width:min(78vw,420px);height:min(64vh,560px);border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55);overflow:hidden}
+.cam-frame i{position:absolute;width:34px;height:34px;border:4px solid #fff;transition:border-color .2s}
+.cam-frame i.tl{top:0;left:0;border-right:0;border-bottom:0;border-top-left-radius:14px}.cam-frame i.tr{top:0;right:0;border-left:0;border-bottom:0;border-top-right-radius:14px}
+.cam-frame i.bl{bottom:0;left:0;border-right:0;border-top:0;border-bottom-left-radius:14px}.cam-frame i.br{bottom:0;right:0;border-left:0;border-top:0;border-bottom-right-radius:14px}
+.cam-frame.ok i{border-color:#22c55e}
+.cam-line{position:absolute;left:6%;right:6%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#df0a1e,transparent);box-shadow:0 0 14px 3px rgba(223,10,30,.7);animation:camscan 2.2s ease-in-out infinite alternate}
+@keyframes camscan{from{top:6%}to{top:94%}}
+.cam-top,.cam-bottom{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;z-index:2}
+.cam-top{top:0;padding-top:max(14px,env(safe-area-inset-top));background:linear-gradient(#000a,transparent)}
+.cam-bottom{bottom:0;padding-bottom:max(22px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000a)}
+.cam-hint{flex:1;text-align:center;font-size:14px;font-weight:600;padding:0 10px;text-shadow:0 1px 4px #000}
+.cam-btn{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center;cursor:pointer}.cam-btn.on{background:#facc15;color:#000}
+.cam-shutter{width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:transparent;padding:0;cursor:pointer;display:grid;place-items:center}
+.cam-shutter i{width:58px;height:58px;border-radius:50%;background:#fff;transition:transform .1s}.cam-shutter:active i{transform:scale(.88)}
+.cam-done{min-width:76px;height:44px;border-radius:22px;border:0;background:#df0a1e;color:#fff;font-weight:700;padding:0 14px;cursor:pointer}.cam-done:disabled{opacity:.4}.cam-spacer{width:44px}
+.cam-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}.cam-flash.go{animation:camflash .35s ease-out}
+@keyframes camflash{from{opacity:.8}to{opacity:0}}

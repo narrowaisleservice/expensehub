@@ -128,7 +128,9 @@ let X = null; // working copy
 const blankExpense = (kind = 'expense') => ({ id: null, kind, merchant: '', expense_date: today(), amount: '', currency: App.ws.currency, fx_rate: 1, category_id: '', notes: '', billable: false, customer: '', payment_method: 'personal', receipt_path: null, miles: '', from_loc: '', to_loc: '', vat_amount: '', supplier_vat_no: '', receipt_hash: null, receipt_uploaded_at: null, receipt_check: null, trip_id: '', flags: [], file: null, roundTrip: false, days: '', rate: '' });
 ACTIONS.newExpense = () => openExpense();
 ACTIONS.newMileage = () => openExpense(null, 'mileage');
-ACTIONS.scanExpense = () => { openExpense(); setTimeout(() => { const i = $('#x_file'); if (i) { i.setAttribute('capture', 'environment'); i.click(); } }, 150); };
+/* feed a captured/picked file into the open expense form exactly like the file input would */
+function feedReceipt(files) { const i = $('#x_file'); if (!i || !files.length) return; const dt = new DataTransfer(); dt.items.add(files[0]); i.files = dt.files; i.dispatchEvent(new Event('change', { bubbles: true })); }
+ACTIONS.scanExpense = () => { openExpense(); setTimeout(() => Cam.open({ onDone: feedReceipt, onGallery: () => ACTIONS.xPick() }), 150); };
 ACTIONS.openExpense = (t) => openExpense(t.dataset.id);
 
 async function openExpense(id, kind) {
@@ -291,7 +293,7 @@ ACTIONS.xDist = async t => {
     note.textContent = `${mi} miles by road (one way). Tick "round trip" if you came back too. Check it looks right.`;
   } catch (e) { note.textContent = (e.message || 'Could not work it out') + ' — enter the miles by hand.'; } finally { t.disabled = false; }
 };
-ACTIONS.xCamera = () => { const i = $('#x_file'); i.setAttribute('capture', 'environment'); i.click(); };
+ACTIONS.xCamera = () => Cam.open({ onDone: feedReceipt, onGallery: () => ACTIONS.xPick() });
 ACTIONS.xPick = () => { const i = $('#x_file'); i.removeAttribute('capture'); i.click(); };
 ACTIONS.xView = (t, ev) => {
   ev.preventDefault(); const p = X.receipt_path;
@@ -407,7 +409,8 @@ function parseReceipt(raw) {
 }
 /* ---------- bulk receipt upload: pick many photos, read them all, review, save ---------- */
 const BK = { rows: [], busy: false };
-ACTIONS.bulkScan = () => {
+ACTIONS.bulkScan = () => Cam.open({ multi: true, onDone: startBulk, onGallery: bulkPick });
+function bulkPick() {
   const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,application/pdf'; i.multiple = true; i.style.display = 'none'; document.body.appendChild(i);
   i.onchange = () => { const fs = [...i.files]; i.remove(); startBulk(fs); }; i.click();
 };
