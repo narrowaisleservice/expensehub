@@ -162,3 +162,19 @@ body.camopen{overflow:hidden}
 .cam-done{min-width:76px;height:44px;border-radius:22px;border:0;background:#df0a1e;color:#fff;font-weight:700;padding:0 14px;cursor:pointer}.cam-done:disabled{opacity:.4}.cam-spacer{width:44px}
 .cam-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}.cam-flash.go{animation:camflash .35s ease-out}
 @keyframes camflash{from{opacity:.8}to{opacity:0}}
+/* camera v2 */
+.cam-ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cam-frame{transition:box-shadow .25s}.cam-frame.det{box-shadow:none}.cam-frame.det i,.cam-frame.det .cam-line{opacity:0}
+.cam-chips{position:absolute;top:calc(max(14px,env(safe-area-inset-top)) + 62px);left:0;right:0;display:flex;gap:8px;justify-content:center;z-index:2;flex-wrap:wrap;padding:0 12px}
+.cam-chip{border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;border-radius:999px;font-size:13px;font-weight:600;padding:6px 12px;cursor:pointer}
+.cam-chip.on{background:#fff;color:#111;border-color:#fff}
+.cam-hint.ok{color:#86efac}.cam-hint.warn{color:#fde047}
+.cam-btn.pulse{animation:campulse 1s infinite;background:#facc15;color:#000}
+@keyframes campulse{50%{transform:scale(1.15)}}
+.cam-last{position:absolute;left:12px;right:12px;bottom:calc(max(22px,env(safe-area-inset-bottom)) + 100px);text-align:center;z-index:2;background:rgba(0,0,0,.65);padding:8px 12px;border-radius:10px;font-size:14px;font-weight:600}
+.cam-last.warn{background:#b45309}
+.cam-zoom{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.6);padding:6px 14px;border-radius:999px;font-weight:700;z-index:2}
+.cam-focus{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #facc15;border-radius:10px;z-index:2;pointer-events:none}.cam-focus.go{animation:camfocus .5s ease-out}
+@keyframes camfocus{from{transform:scale(1.5);opacity:.2}to{transform:scale(1);opacity:1}}
+.cam-shwrap{position:relative;width:88px;height:88px;display:grid;place-items:center}
+.cam-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#22c55e calc(var(--p,0)*1turn),transparent 0);-webkit-mask:radial-gradient(circle,transparent 41px,#000 42px);mask:radial-gradient(circle,transparent 41px,#000 42px);pointer-events:none}

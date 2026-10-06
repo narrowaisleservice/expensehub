@@ -229,6 +229,7 @@ function updateHints() {
     if (!hasRc && amt > ws.receipt_required_over && c?.receipt_required !== false) h.push('A receipt is needed for this expense — add a photo.');
     if (vat > 0 && !hasRc) h.push('VAT can only be reclaimed with a receipt.');
     if (vat > 0 && amt > 250 && !v('#x_svat').trim()) h.push('Over £250 with VAT: add the supplier’s VAT number from the receipt.');
+    { const d = findDup(v('#x_merchant'), v('#x_amount'), date, X.id); if (d) h.push('Looks like a duplicate: you already entered ' + (d.merchant || 'an expense') + ' for ' + money(d.amount, d.currency) + ' on ' + dfmt(d.expense_date) + '.'); }
     if (c?.per_item_limit && amt > c.per_item_limit) h.push(`Over the ${c.name} limit of ${money(c.per_item_limit)} — it will be flagged for approval.`);
     if (amt > ws.flag_over) h.push(`Over ${money(ws.flag_over)} — it will be flagged for extra scrutiny.`);
     const m = v('#x_merchant').trim().toLowerCase();
@@ -409,7 +410,25 @@ function parseReceipt(raw) {
 }
 /* ---------- bulk receipt upload: pick many photos, read them all, review, save ---------- */
 const BK = { rows: [], busy: false };
-ACTIONS.bulkScan = () => Cam.open({ multi: true, onDone: startBulk, onGallery: bulkPick });
+ACTIONS.bulkScan = () => Cam.open({ multi: true, onDone: startBulk, onGallery: bulkPick, onShot: bulkReadBack });
+/* read each photo as soon as it is taken, one at a time, so the camera can show "Tesco £14.60" straight away */
+let BKQ = Promise.resolve();
+function bulkReadBack(f) {
+  if (!navigator.onLine) return Promise.resolve(null);
+  f._read = BKQ.then(() => readReceipt(f, async () => await newOcrWorker())).catch(() => null);
+  BKQ = f._read.then(() => { }, () => { });
+  return f._read.then(p => {
+    if (!p || (!p.amount && !p.merchant)) return { label: 'Could not read it — you can fix it on the next screen', warn: true };
+    const dup = findDup(p.merchant, p.amount, p.date);
+    return { label: (p.merchant || 'Receipt') + (p.amount ? ' · ' + money(p.amount) : '') + (dup ? ' — possible duplicate!' : ' ✓'), warn: !!dup };
+  });
+}
+/* same merchant-ish + same amount + same date as something already entered? */
+function findDup(merchant, amount, date, selfId) {
+  const a = Number(amount); if (!a || !date) return null;
+  const first = m => String(typeof mkey === 'function' ? mkey(m) : m || '').split(' ')[0], f = first(merchant);
+  return (EX.rows || []).find(e => e.id !== selfId && e.user_id === App.user.id && e.expense_date === date && Math.abs(Number(e.amount) - a) < .005 && (!f || !e.merchant || first(e.merchant) === f)) || null;
+}
 function bulkPick() {
   const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,application/pdf'; i.multiple = true; i.style.display = 'none'; document.body.appendChild(i);
   i.onchange = () => { const fs = [...i.files]; i.remove(); startBulk(fs); }; i.click();
@@ -450,7 +469,7 @@ async function runBulk() {
         if (!navigator.onLine) { r.msg = 'Offline — saved on this device and read when you are back online.'; }
         else if (r.file.type.startsWith('image/') && r.file.type !== 'image/heic') {
           const qc = await checkReceiptImage(r.file); r.check = qc.ok ? 'ok' : 'unclear'; r.msg = qc.problems.join(' ');
-          const p = await readReceipt(r.file, async () => (worker = worker || await newOcrWorker()));
+          const p = await (r.file._read || readReceipt(r.file, async () => (worker = worker || await newOcrWorker())));
           if (!p) throw new Error('unreadable');
           if (p.svat) r.svat = p.svat; if (p.catId) r.cat = p.catId; if (p.pay) r.pay = p.pay; if (p.unclear) { r.check = 'unclear'; r.msg = (r.msg + ' Looks hard to read.').trim(); } if (p.notReceipt) r.msg = (r.msg + ' Does not look like a receipt.').trim();
           if (p.merchant) r.merchant = p.merchant; if (p.amount) r.amount = p.amount.toFixed(2); if (p.date) r.date = p.date; if (p.vat) r.vat = p.vat.toFixed(2);
