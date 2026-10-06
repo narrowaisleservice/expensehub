@@ -25,8 +25,8 @@ VIEWS.expenses = async el => {
   await fetchExpenses(); await OFF.refresh();
   try { EX.trips = await q(sb.from('exp_trips').select('*').eq('workspace_id', App.ws.id).order('start_date', { ascending: false })); } catch (e) { if (!isNetErr(e)) throw e; EX.trips = EX.trips || []; }
   el.innerHTML = `${EX.stale ? '<div class="note" style="margin-bottom:10px">Showing the list as it was when you last had a signal.</div>' : ''}${OFF.pendingHTML()}
-  <div class="toolbar">
-    <input id="f_q" placeholder="Search merchant, notes, customer…" value="${esc(EX.f.q)}">
+  <div class="toolbar${isSimple() ? ' simpletb' : ''}">
+    <input id="f_q" placeholder="${isSimple() ? 'Search your receipts…' : 'Search merchant, notes, customer…'}" value="${esc(EX.f.q)}">
     <select id="f_status"><option value="">All statuses</option>${['unreported', 'draft', 'submitted', 'approved', 'rejected', 'reimbursed'].map(s => `<option ${EX.f.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
     <select id="f_cat"><option value="">All categories</option>${App.cats.map(c => `<option value="${c.id}" ${EX.f.cat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
     ${isManager() ? `<select id="f_who"><option value="">Everyone</option>${App.members.map(m => `<option value="${m.user_id}" ${EX.f.who === m.user_id ? 'selected' : ''}>${esc(m.display_name || m.email)}</option>`).join('')}</select>` : ''}
@@ -39,8 +39,8 @@ VIEWS.expenses = async el => {
     <button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button>
     <button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button>
     <span class="grow"></span>
-    <select id="exp_fmt" title="Export format"><option value="xlsx">Export: Excel</option><option value="zip">Export: Excel + receipts (ZIP)</option><option value="generic">Export: CSV</option></select>
-    <button class="btn ghost" data-act="exportExp">Export</button>
+    <select id="exp_fmt" title="Export format"${isSimple() && !isManager() ? ' hidden' : ''}><option value="xlsx">Export: Excel</option><option value="zip">Export: Excel + receipts (ZIP)</option><option value="generic">Export: CSV</option></select>
+    <button class="btn ghost" data-act="exportExp"${isSimple() && !isManager() ? ' hidden' : ''}>Export</button>
   </div>
   <div id="bulk" class="bulk" hidden></div>
   <div class="card nopad" id="exlist"></div>`;

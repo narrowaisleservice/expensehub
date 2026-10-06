@@ -128,3 +128,14 @@ svg.i{vertical-align:-3px;flex:none}
 .btn.ghost.sm[data-act="close"] svg.i{margin:0}
 #bellBtn{position:relative;display:inline-grid;place-items:center}.bellN{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;border-radius:999px;font-size:10px;line-height:1;padding:3px 5px;font-style:normal;min-width:16px;text-align:center}
 .pill.check{background:#fff3e0;color:#b45309}
+
+/* simple view */
+.bigacts{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-bottom:16px}
+.btn.big{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px 12px;font-size:16px;font-weight:600;text-align:center;white-space:normal;min-height:104px;border-radius:14px}
+.btn.big span{white-space:normal;line-height:1.25}
+.welcome{margin-bottom:14px}.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.steps3 div{display:flex;gap:10px;align-items:center}.steps3 b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--red,#df0a1e);color:#fff;display:grid;place-items:center}
+.nextstep{display:block;margin-bottom:14px;border-left:4px solid var(--red,#df0a1e);text-decoration:none;color:inherit}
+#nav .moretools{margin-top:14px;opacity:.75;font-size:13px}
+@media(max-width:700px){.bigacts{grid-template-columns:1fr}.btn.big{flex-direction:row;justify-content:flex-start;min-height:64px;padding:14px 16px;text-align:left}.steps3{grid-template-columns:1fr}}
+.simpletb #f_cat,.simpletb #f_who,.simpletb #f_from,.simpletb #f_to,.simpletb .chk{display:none}

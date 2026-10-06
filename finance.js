@@ -66,6 +66,23 @@ VIEWS.dashboard = async el => {
   const alerts = [
     noRc ? `${ic('clip', 16)} ${noRc} expense(s) need a receipt` : '', needRev ? `${ic('mail', 16)} <a href="#/inbox">${needRev} emailed receipt(s) to check</a>` : '', stale ? `${ic('clock', 16)} ${stale} expense(s) have not been put on a report for over a week` : '', rejected ? `${ic('back', 16)} ${rejected} report(s) were rejected — fix and resubmit` : '',
     limit && spent > limit ? `${ic('ban', 16)} You are over your monthly limit (${money(spent)} of ${money(limit)})` : ''].filter(Boolean);
+  if (isSimple()) {
+    const toClaim = [...by('unreported'), ...by('draft')], waiting = by('submitted'), toPay = by('approved');
+    const first = !EX.rows.some(e => e.user_id === uid);
+    const pendMgr = mgr && mgrData ? (mgrData[0].count || 0) : 0;
+    el.innerHTML = `${gs}
+    ${first ? `<div class="card welcome"><h3>Welcome to Flexi Expenses</h3><div class="steps3"><div><b>1</b><span>Snap a photo of your receipt</span></div><div><b>2</b><span>Put your receipts in a claim</span></div><div><b>3</b><span>Get paid back</span></div></div></div>` : ''}
+    <div class="bigacts"><button class="btn big" data-act="scanExpense">${ic('camera', 26)}<span>Take a photo of a receipt</span></button>
+      <button class="btn big ghost" data-act="newExpense">${ic('plus', 26)}<span>Add an expense by typing</span></button>
+      <button class="btn big ghost" data-act="newMileage">${ic('car', 26)}<span>Add a mileage journey</span></button></div>
+    ${ready}${pendMgr ? `<a class="card nextstep" href="#/approvals"><b>${pendMgr} report${pendMgr > 1 ? 's' : ''} waiting for you to approve</b><span class="sub">Tap to review</span></a>` : ''}
+    ${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
+    <div class="grid">${stat('Not yet claimed', money(sum(toClaim, e => e.amount_base)), toClaim.length + ' receipt' + (toClaim.length === 1 ? '' : 's'), '#/expenses')}
+      ${stat('Waiting for approval', money(sum(waiting, e => e.amount_base)), '', '#/reports')}
+      ${stat('Approved – on its way to you', money(sum(toPay, e => e.amount_base)), '', '#/reports')}</div>
+    <div class="card nopad" style="margin-top:14px"><h3 style="padding:14px 14px 0">Your latest receipts</h3>${mine.slice(0, 5).map(e => expenseRow(e)).join('') || '<div class="empty">Nothing yet. Tap “Take a photo of a receipt” to start.</div>'}</div>`;
+    return;
+  }
   el.innerHTML = `${gs}${ready}${alerts.length ? `<div class="note" style="margin-bottom:12px">${alerts.map(a => `<div>${a}</div>`).join('')}</div>` : ''}
   <div class="row wrap gap" style="margin-bottom:14px"><button class="btn" data-act="newExpense">+ New expense</button><button class="btn ghost" data-act="scanExpense">${ic('camera', 16)} Scan receipt</button><button class="btn ghost" data-act="bulkScan">${ic('multi', 16)} Multiple receipts</button><button class="btn ghost" data-act="newMileage">${ic('car', 16)} Mileage</button></div>
   <h3 class="sec">Me</h3><div class="grid">

@@ -41,6 +41,7 @@ const IC = {
   file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
   check: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
   circle: '<circle cx="12" cy="12" r="9"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
   trip: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
   cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
   calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',
@@ -220,18 +221,21 @@ async function reloadWorkspace() { await loadWorkspaces(); await selectWorkspace
 /* ---------- navigation / router ---------- */
 /* [id, label, icon, who can see it, group heading]  — who: '' everyone, 'manager' approver/finance/admin, 'finance' finance/admin */
 const NAV = [
-  ['dashboard', 'Dashboard', 'dash', '', ''], ['expenses', 'Expenses', 'receipt', '', ''], ['inbox', 'Receipt inbox', 'mail', '', ''], ['reports', 'Reports', 'file', '', ''], ['approvals', 'Approvals', 'check', 'manager', ''], ['trips', 'Trips', 'trip', '', ''],
+  ['dashboard', 'Home', 'dash', '', ''], ['expenses', 'Expenses', 'receipt', '', ''], ['inbox', 'Emailed receipts', 'mail', '', ''], ['reports', 'Reports', 'file', '', ''], ['approvals', 'Approvals', 'check', 'manager', ''], ['trips', 'Trips', 'trip', '', ''],
   ['bills', 'Bills to pay', 'cash', 'finance', 'Finance'], ['invoices', 'Invoices', 'calc', 'finance', 'Finance'], ['budgets', 'Budgets', 'target', 'finance', 'Finance'], ['analytics', 'Analytics', 'chart', 'finance', 'Finance'], ['vat', 'VAT summary', 'percent', 'finance', 'Finance'], ['statements', 'Card matching', 'match', 'finance', 'Finance'],
   ['team', 'Team', 'users', 'manager', 'Admin'], ['audit', 'Audit log', 'clock', 'manager', 'Admin'], ['settings', 'Settings', 'sliders', '', 'Admin']
 ];
-const navAllowed = n => (n[0] !== 'inbox' || HAS.v8) && (!n[3] || (n[3] === 'manager' && isManager()) || (n[3] === 'finance' && isFinance()));
+/* Simple view (default): only the everyday pages. "Show all tools" reveals the rest. Remembered per device. */
+const SIMPLE_NAV = ['dashboard', 'expenses', 'inbox', 'reports', 'approvals', 'team', 'settings'];
+const isSimple = () => { try { return localStorage.getItem('eh_simple') !== '0'; } catch (e) { return true; } };
+const navAllowed = n => (n[0] !== 'inbox' || HAS.v8) && (!isSimple() || SIMPLE_NAV.includes(n[0])) && (!n[3] || (n[3] === 'manager' && isManager()) || (n[3] === 'finance' && isFinance()));
 function renderShell() {
   let last = '';
   const items = NAV.filter(navAllowed), groups = new Set(items.map(n => n[4]));
   $('#nav').innerHTML = items.map(n => {
     const head = n[4] !== last && n[4] && (groups.size > 1) ? `<div class="grp">${n[4]}</div>` : ''; last = n[4];
     return head + `<a href="#/${n[0]}" data-nav="${n[0]}"><span class="ic">${ic(n[2], 18)}</span><span>${n[1]}</span><b class="badge" id="b-${n[0]}" hidden></b></a>`;
-  }).join('');
+  }).join('') + `<a href="#" data-act="toggleSimple" class="moretools"><span class="ic">${ic(isSimple() ? 'plus' : 'minus', 18)}</span><span>${isSimple() ? 'Show all tools' : 'Show simple view'}</span></a>`;
   $('#wsname').textContent = App.ws.name;
   $('#whoami').textContent = (App.me.display_name || App.user.email) + ' · ' + App.me.role;
   const sw = $('#wsswitch');
@@ -249,6 +253,7 @@ async function route() {
   refreshBadges();
 }
 const rerender = () => route();
+ACTIONS.toggleSimple = (t, ev) => { ev.preventDefault(); try { localStorage.setItem('eh_simple', isSimple() ? '0' : '1'); } catch (e) { } renderShell(); route(); };
 async function refreshBadges() {
   try {
     const set = (id, n) => { const b = $('#b-' + id); if (b) { b.hidden = !n; b.textContent = n; } };
