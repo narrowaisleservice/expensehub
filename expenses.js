@@ -355,12 +355,29 @@ async function readReceipt(file, getWorker) {
   if (file.type.startsWith('image/') && file.type !== 'image/heic') return mergeParsed(getWorker ? await ocrWith(await getWorker(), file) : await ocrReceipt(file));
   return null;
 }
+
+// ---- "reading the receipt" feedback: spinner banner, shimmering fields, green flash when filled ----
+const READ_FIELDS = ['x_merchant', 'x_amount', 'x_date', 'x_vat', 'x_svat', 'x_cat'];
+function readingStart(out) {
+  const steps = ['Reading the receipt…', 'Finding the shop name…', 'Looking for the total…', 'Checking the date and VAT…', 'Choosing a category…', 'Nearly there…'];
+  let i = 0;
+  out.innerHTML = '<div class="readbanner"><span class="spin"></span><b>Auto-filling from your receipt</b><span class="rstep">' + steps[0] + '</span></div>';
+  const t = setInterval(() => { const el = out.querySelector('.rstep'); if (!el) return clearInterval(t); i = Math.min(i + 1, steps.length - 1); el.textContent = steps[i]; }, 1400);
+  READ_FIELDS.forEach(id => { const f = $('#' + id); if (f) { f.classList.add('shimmer'); f.dataset.rd = '1'; } });
+  const host = ($('#x_merchant')?.closest('fieldset') || {}).parentElement;
+  if (host) { const top = document.createElement('div'); top.id = 'x_topread'; top.className = 'readbanner sticky'; top.innerHTML = '<span class="spin"></span><b>Reading your receipt and filling in the details…</b>'; host.insertBefore(top, host.firstChild); }
+  return t;
+}
+function readingStop(t) { clearInterval(t); $('#x_topread')?.remove(); document.querySelectorAll('.shimmer').forEach(f => { f.classList.remove('shimmer'); delete f.dataset.rd; }); }
+function flashFilled(map) {
+  Object.keys(map).forEach(id => { if (!map[id]) return; const f = $('#' + id); if (!f) return; f.classList.add('justfilled'); setTimeout(() => f.classList.remove('justfilled'), 2600); });
+}
 ACTIONS.xScan = async () => {
   const out = $('#x_ocr');
   if (!navigator.onLine && !window.Tesseract) { out.textContent = 'Offline — your photo is kept on this device and will be read automatically when you are back online. You can also type the details in now.'; return; }
-  out.textContent = 'Reading receipt…';
+  const RD = readingStart(out);
   try {
-    const p = await readReceipt(X._readFile || X.file); readX();
+    const p = await readReceipt(X._readFile || X.file); readX(); readingStop(RD);
     if (!p) { out.textContent = 'This file type cannot be read automatically — enter the details by hand.'; return; }
     if (p.svat) X.supplier_vat_no = p.svat;
     if (p.catId && !X.category_id) X.category_id = p.catId;
@@ -377,7 +394,8 @@ ACTIONS.xScan = async () => {
     const rule = ruleFor(X.merchant); if (rule && !X.category_id) { X.category_id = rule.category_id; if (rule.billable) X.billable = true; }
     drawExpenseForm(); $('#x_ocr').textContent = `${p.ai ? 'Read with AI' : 'Read on this device'} — filled in: ${[p.merchant && 'merchant', p.amount && 'amount', p.date && 'date', p.vat && 'VAT', p.svat && 'supplier VAT no.', p.catId && 'category'].filter(Boolean).join(', ') || 'nothing found'}.${note}${p.notReceipt ? ' This does not look like a receipt.' : ''}${p.unclear ? ' It looks hard to read — keep the paper copy.' : ''} Please check every field against the receipt.`;
     if (X.qualityNote) $('#x_ocr')?.insertAdjacentHTML('beforeend', X.qualityNote);
-  } catch (e) { out.textContent = ''; fail(e); }
+    flashFilled({ x_merchant: p.merchant, x_amount: p.amount, x_date: p.date, x_vat: p.vat, x_svat: p.svat, x_cat: p.catId });
+  } catch (e) { readingStop(RD); out.textContent = ''; fail(e); }
 };
 function parseReceipt(raw) {
   const text = raw.replace(/(\d)\s*([.,])\s*(\d{2})(?!\d)/g, '$1$2$3');

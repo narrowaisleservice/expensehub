@@ -184,3 +184,14 @@ body.camopen{overflow:hidden}
 .trkbar small{display:block;opacity:.7;font-size:12px}.trkbar b{font-size:17px}
 .trkdot{width:12px;height:12px;border-radius:50%;background:#ef4444;animation:campulse 1.2s infinite;flex:none}
 .trkbar .btn.ghost{color:#fff;border-color:#555}
+
+/* receipt reading feedback */
+.readbanner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:#fff4f4;border:1px solid #f3c2c6;color:#101010;border-radius:10px;padding:10px 12px;font-size:13px}
+.readbanner .rstep{color:#6b6b6b;flex-basis:100%;text-align:center;font-size:12.5px}
+.readbanner .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid #f3c2c6;border-top-color:#df0a1e;animation:rdspin .8s linear infinite}
+@keyframes rdspin{to{transform:rotate(360deg)}}
+input.shimmer,select.shimmer{background:linear-gradient(90deg,#f3f3f3 25%,#fde3e5 50%,#f3f3f3 75%)!important;background-size:200% 100%;animation:rdshim 1.1s linear infinite;color:transparent!important;pointer-events:none}
+@keyframes rdshim{from{background-position:200% 0}to{background-position:-200% 0}}
+input.justfilled,select.justfilled{animation:rdfill 2.6s ease-out}
+@keyframes rdfill{0%{background:#c9f2d3;box-shadow:0 0 0 3px #7bd68f}100%{background:inherit;box-shadow:0 0 0 0 transparent}}
+.readbanner.sticky{position:sticky;top:0;z-index:5;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
