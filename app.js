@@ -110,4 +110,4 @@ boot();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
 
 // version tag (set in config.js)
-document.querySelectorAll('[data-ver]').forEach(el => { el.textContent = 'Flexi Expenses ' + (window.EXPENSEHUB_CONFIG.version || ''); });
+document.querySelectorAll('[data-ver]').forEach(el => { const c = window.EXPENSEHUB_CONFIG; el.innerHTML = 'Flexi Expenses ' + (c.version || '') + (c.author ? '<br><span class="made">Made by ' + c.author + '</span>' : ''); });

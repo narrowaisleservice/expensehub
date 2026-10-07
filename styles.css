@@ -217,3 +217,4 @@ td .rth{width:30px;height:30px;border-radius:6px;margin-left:4px}
 .vtag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;padding:6px 14px 12px;font-weight:600}
 #side .vtag{color:#fff}
 .authcard .vtag{padding:10px 0 0}
+.vtag .made{text-transform:none;letter-spacing:0;font-weight:500;opacity:.9}
