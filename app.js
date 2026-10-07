@@ -108,3 +108,6 @@ async function boot() {
 boot();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+
+// version tag (set in config.js)
+document.querySelectorAll('[data-ver]').forEach(el => { el.textContent = 'Flexi Expenses ' + (window.EXPENSEHUB_CONFIG.version || ''); });

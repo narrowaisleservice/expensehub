@@ -213,3 +213,7 @@ td .rth{width:30px;height:30px;border-radius:6px;margin-left:4px}
 .lbbody img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;transition:transform .2s;transform-origin:center;cursor:zoom-in;touch-action:pinch-zoom}
 .lbbody iframe{width:100%;height:100%;border:0;background:#fff;border-radius:6px}
 .lbhint{color:#aaa;font-size:12px;text-align:center;padding:6px 10px 12px}
+
+.vtag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;padding:6px 14px 12px;font-weight:600}
+#side .vtag{color:#fff}
+.authcard .vtag{padding:10px 0 0}
