@@ -42,7 +42,7 @@ async function openReport(id) {
   <div class="row between"><div><h2>${esc(r.name)} ${pill(st)}</h2><p class="sub">${esc(memberName(r.user_id))} · created ${dfmt(r.created_at)}</p></div><button class="btn ghost sm no-print" data-act="close">${ic('x', 14)}</button></div>
   ${st === 'rejected' && r.reject_reason ? `<div class="note">Rejected: ${esc(r.reject_reason)}</div>` : ''}
   <table><tr><th>Date</th><th>Merchant</th><th>Category</th><th class="r">Amount</th><th class="no-print"></th></tr>
-  ${items.map(e => `<tr><td>${dfmt(e.expense_date)}</td><td><a href="#" data-act="openExpFromReport" data-id="${e.id}">${esc(e.merchant || e.kind)}</a>${e.receipt_path ? ' ' + ic('clip', 13) : ''} <span class="no-print">${flagHTML(e.flags)}</span></td><td>${esc(catName(e.category_id))}</td><td class="r">${money(e.amount_base)}</td>
+  ${items.map(e => `<tr><td>${dfmt(e.expense_date)}</td><td><a href="#" data-act="openExpFromReport" data-id="${e.id}">${esc(e.merchant || e.kind)}</a>${e.receipt_path ? ' ' + rcptThumb(e.receipt_path) : ''} <span class="no-print">${flagHTML(e.flags)}</span></td><td>${esc(catName(e.category_id))}</td><td class="r">${money(e.amount_base)}</td>
     <td class="no-print">${mine && ['draft', 'rejected'].includes(st) ? `<a href="#" data-act="removeFromReport" data-id="${e.id}" title="Remove from report">${ic('x', 14)}</a>` : ''}</td></tr>`).join('')}
   <tr><td colspan="3"><b>Total</b></td><td class="r"><b>${money(total)}</b></td><td class="no-print"></td></tr></table>
   <div class="two" style="margin-top:10px"><div class="sub">${items.filter(e => e.receipt_path).length}/${items.length} receipts attached${flagged ? ` · ${flagged} flagged` : ''}</div>

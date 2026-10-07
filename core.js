@@ -184,6 +184,49 @@ async function viewFile(path, meta = '') {
   } catch (e) { fail(e); }
 }
 
+
+/* ---------- receipt thumbnails + full-screen viewer ---------- */
+const isPdfPath = p => /\.pdf$/i.test(p || '');
+// small tappable receipt picture; fills in by itself once on screen (see hydrateThumbs)
+function rcptThumb(path, big) {
+  if (!path) return '';
+  const cls = 'rth' + (big ? ' big' : '');
+  if (isPdfPath(path)) return `<span class="${cls} pdf" data-act="viewRcpt" data-p="${esc(path)}" title="View receipt">PDF</span>`;
+  return `<span class="${cls}" data-act="viewRcpt" data-p="${esc(path)}" title="View receipt"><img data-p="${esc(path)}" alt="Receipt" loading="lazy"></span>`;
+}
+let _hyT = 0;
+function hydrateThumbs() {
+  clearTimeout(_hyT);
+  _hyT = setTimeout(async () => {
+    const imgs = [...document.querySelectorAll('img[data-p]:not([src])')]; if (!imgs.length || typeof sb === 'undefined') return;
+    const need = [...new Set(imgs.map(i => i.dataset.p))].filter(p => !(_signed[p] && _signed[p].exp > Date.now()));
+    try {
+      if (need.length) {
+        const { data } = await sb.storage.from('exp-receipts').createSignedUrls(need, 3600);
+        (data || []).forEach(d => { if (d.signedUrl) _signed[d.path || need[data.indexOf(d)]] = { url: d.signedUrl, exp: Date.now() + 3000 * 1000 }; });
+      }
+    } catch (e) { /* thumbnails are optional */ }
+    imgs.forEach(i => { const c = _signed[i.dataset.p]; if (c) { i.onerror = () => i.parentElement.classList.add('gone'); i.src = c.url; } else i.parentElement.classList.add('gone'); });
+  }, 60);
+}
+new MutationObserver(hydrateThumbs).observe(document.documentElement, { childList: true, subtree: true });
+async function viewReceipt(path, src) {
+  try {
+    const url = src || await signedUrl(path), pdf = isPdfPath(path) || /^blob:.*#pdf$/.test(url);
+    closeLightbox();
+    const d = document.createElement('div'); d.id = 'lightbox'; d.className = 'lightbox';
+    d.innerHTML = `<div class="lbbar"><span class="grow">Receipt</span><a class="btn ghost sm lbbtn" href="${url}" target="_blank" rel="noopener">Open in new tab</a><button class="btn sm" data-lb="x">Close</button></div>
+      <div class="lbbody">${pdf ? `<iframe src="${url}"></iframe>` : `<img src="${url}" alt="Receipt" draggable="false">`}</div>
+      <div class="lbhint">${pdf ? '' : 'Pinch or double-tap to zoom · tap outside the receipt to close'}</div>`;
+    d.addEventListener('click', e => { if (e.target.closest('[data-lb="x"]') || e.target.classList.contains('lbbody') || e.target === d) closeLightbox(); });
+    const img = d.querySelector('img'); if (img) { let z = 1; img.addEventListener('dblclick', () => { z = z > 1 ? 1 : 2.2; img.style.transform = `scale(${z})`; img.style.cursor = z > 1 ? 'zoom-out' : 'zoom-in'; }); }
+    document.body.appendChild(d); document.body.classList.add('noscroll');
+  } catch (e) { fail(e); }
+}
+function closeLightbox() { const d = document.getElementById('lightbox'); if (d) { d.remove(); if (!$('#modal')?.classList.contains('on')) document.body.classList.remove('noscroll'); } }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('lightbox')) { closeLightbox(); e.stopPropagation(); } }, true);
+ACTIONS.viewRcpt = (t, ev) => { ev?.preventDefault(); ev?.stopPropagation(); viewReceipt(t.dataset.p); };
+
 /* ---------- FX rates ---------- */
 const _fx = {};
 async function fxRate(from, to) {

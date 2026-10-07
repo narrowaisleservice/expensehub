@@ -62,7 +62,7 @@ function expenseRow(e, selectable) {
   const c = cat(e.category_id), foreign = e.currency !== App.ws.currency;
   return `<div class="item" data-act="openExpense" data-id="${e.id}">
     ${sel ? `<input type="checkbox" class="selbox" data-act="selExp" data-id="${e.id}" ${EX.sel.has(e.id) ? 'checked' : ''}>` : selectable ? '<span style="width:18px"></span>' : ''}
-    <div class="thumb" style="--c:${esc(c?.color || '#9ca3af')}">${e.kind === 'mileage' ? ic('car', 20) : e.kind === 'per_diem' ? ic('cal', 20) : e.receipt_path ? ic('clip', 20) : ic('receipt', 20)}</div>
+    ${e.receipt_path && e.kind === 'expense' ? rcptThumb(e.receipt_path) : `<div class="thumb" style="--c:${esc(c?.color || '#9ca3af')}">${e.kind === 'mileage' ? ic('car', 20) : e.kind === 'per_diem' ? ic('cal', 20) : e.receipt_path ? ic('clip', 20) : ic('receipt', 20)}</div>`}
     <div class="grow"><b>${esc(e.merchant || (e.kind === 'mileage' ? 'Mileage' : 'Expense'))}</b>
       <span class="sub">${dfmt(e.expense_date)} · ${esc(c?.name || 'Uncategorised')}${isManager() ? ' · ' + esc(memberName(e.user_id)) : ''}${e.billable ? ' · Billable' : ''}</span>
       <div>${flagHTML(e.flags)}</div></div>
@@ -202,7 +202,7 @@ function drawExpenseForm() {
   ${e.kind === 'mileage' ? '' : `<label>Receipt</label>
   <div class="rcpt">
     <div class="note" style="text-align:left;font-size:12.5px"><b>Before you bin the paper receipt</b> — your photo must show: the <b>whole receipt</b> (all four corners), the <b>supplier name</b>, the <b>date</b>, what was bought and the <b>total</b>, plus <b>VAT</b> details if shown. It must be sharp and readable. Keep the original if it's unclear.</div>
-    ${e.file ? `<div class="sub">${ic('clip', 16)} ${esc(e.file.name)} ready to upload</div>` : e.receipt_path ? `<div class="sub">${ic('clip', 16)} Receipt attached — <a href="#" data-act="xView">view</a>${e.receipt_uploaded_at ? ' · stored ' + new Date(e.receipt_uploaded_at).toLocaleString('en-GB') : ''}</div>` : '<div class="sub">No receipt attached</div>'}
+    ${e.file ? `<div class="rprev">${e.file.type.startsWith('image/') ? `<img src="${rprevUrl(e.file)}" alt="Receipt preview" data-act="xView">` : `<div class="rth big pdf" data-act="xView">PDF</div>`}<div class="sub">${esc(e.file.name)} · ready to upload · tap to enlarge</div></div>` : e.receipt_path ? `<div class="rprev">${isPdfPath(e.receipt_path) ? `<div class="rth big pdf" data-act="xView">PDF</div>` : `<img data-p="${esc(e.receipt_path)}" alt="Receipt" data-act="xView">`}<div class="sub">Tap the receipt to enlarge${e.receipt_uploaded_at ? ' · stored ' + new Date(e.receipt_uploaded_at).toLocaleString('en-GB') : ''}</div></div>` : '<div class="sub">No receipt attached</div>'}
     <div class="row wrap gap" style="justify-content:center;margin-top:8px">
       <button type="button" class="btn ghost sm" data-act="xCamera">${ic('camera', 16)} Take photo</button>
       <button type="button" class="btn ghost sm" data-act="xPick">${ic('clip', 16)} Upload</button>
@@ -297,9 +297,12 @@ ACTIONS.xDist = async t => {
 };
 ACTIONS.xCamera = () => Cam.open({ onDone: feedReceipt, onGallery: () => ACTIONS.xPick() });
 ACTIONS.xPick = () => { const i = $('#x_file'); i.removeAttribute('capture'); i.click(); };
+const _rpu = new WeakMap();
+function rprevUrl(f) { if (!_rpu.has(f)) _rpu.set(f, URL.createObjectURL(f)); return _rpu.get(f); }
 ACTIONS.xView = (t, ev) => {
-  ev.preventDefault(); const p = X.receipt_path;
-  viewFile(p, `<p class="sub" style="margin-top:6px">Stored ${X.receipt_uploaded_at ? new Date(X.receipt_uploaded_at).toLocaleString('en-GB') : ''} · fingerprint (SHA-256) ${X.receipt_hash ? esc(X.receipt_hash.slice(0, 16)) + '…' : 'n/a'}</p>`);
+  ev?.preventDefault(); readX?.();
+  if (X.file) return viewReceipt(X.file.name, X.file.type === 'application/pdf' ? rprevUrl(X.file) + '#pdf' : rprevUrl(X.file));
+  if (X.receipt_path) viewReceipt(X.receipt_path);
 };
 ACTIONS.xRemoveFile = () => { readX(); X.file = null; X.receipt_path = null; drawExpenseForm(); };
 ACTIONS.xVat = (t, ev) => { ev.preventDefault(); const a = parseFloat($('#x_amount').value) || 0; $('#x_vat').value = (a - a / 1.2).toFixed(2); };
