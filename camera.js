@@ -7,7 +7,7 @@ const Cam = (() => {
   const LS = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch (e) { return d; } };
   const LSset = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { } };
   const AW = 240;                                   // analysis width (pixels)
-  let stream = null, root = null, opts = null, track = null, caps = {}, timer = null, torch = false;
+  let stream = null, root = null, opts = null, track = null, caps = {}, timer = null, torch = false, raf = 0;
   let shots = [], parts = [], S = null;
 
   /* ============================ image maths (pure functions, unit-tested) ============================ */
@@ -124,7 +124,7 @@ const Cam = (() => {
   }
 
   /* ============================ camera UI ============================ */
-  function stop() { clearTimeout(timer); try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) { } stream = null; track = null; torch = false; S = null; if (root) { root.remove(); root = null; } document.body.classList.remove('camopen'); }
+  function stop() { clearTimeout(timer); cancelAnimationFrame(raf); raf = 0; try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) { } stream = null; track = null; torch = false; S = null; if (root) { root.remove(); root = null; } document.body.classList.remove('camopen'); }
   function nativeFallback(o) {
     const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.setAttribute('capture', 'environment'); if (o.multi) i.multiple = true; i.style.display = 'none'; document.body.appendChild(i);
     i.onchange = () => { const f = [...i.files]; i.remove(); if (f.length) o.onDone(f); }; i.click();
@@ -179,12 +179,12 @@ const Cam = (() => {
         if (v.videoWidth && !S.busy) {
           const w = AW, h = Math.round(AW * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h);
           const g = grayOf(cx.getImageData(0, 0, w, h).data, w, h), det = detect(g, w, h), sh = sharpness(g, w, h);
-          analyse(det, sh); draw(ov, v, det, frame); ring.style.setProperty('--p', Math.min(1, S.hold / HOLD_MS)); 
+          analyse(det, sh); aim(ov, v, det, frame); ring.style.setProperty('--p', Math.min(1, S.hold / HOLD_MS)); 
         }
       } catch (e) { console.warn('cam analyse', e); }
       timer = setTimeout(tick, 120);
     };
-    tick();
+    tick(); const spin = t => { if (!root) return; try { render(ov, t); } catch (e) { } raf = requestAnimationFrame(spin); }; raf = requestAnimationFrame(spin);
   }
   const HOLD_MS = 900;
   function analyse(det, sh) {
@@ -205,21 +205,55 @@ const Cam = (() => {
     if (S.auto && S.armed && good) { S.hold += 120; if (S.hold >= HOLD_MS) { S.hold = 0; S.armed = false; S.firedPts = det.pts; shoot(root.querySelector('video'), true); } } else S.hold = Math.max(0, S.hold - 240);
   }
   const maxMove = (a, b) => Math.max(...a.map((p, i) => Math.hypot(p[0] - b[i][0], p[1] - b[i][1])));
-  /* draw the outline over the live picture (video is shown "cover", so map the coordinates) */
-  function draw(ov, v, det, frame) {
+  /* the outline is eased towards each new detection and painted every frame, so it glides instead of jumping */
+  function aim(ov, v, det, frame) {
     const W = ov.clientWidth, H = ov.clientHeight; if (ov.width !== W || ov.height !== H) { ov.width = W; ov.height = H; }
-    const c = ov.getContext('2d'); c.clearRect(0, 0, W, H);
     frame.classList.toggle('det', !!det.found);
-    if (!det.found) return;
-    const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh), ox = (W - vw * s) / 2, oy = (H - vh * s) / 2;
-    const P = det.pts.map(p => [p[0] * vw * s + ox, p[1] * vh * s + oy]);
-    c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath();
-    c.fillStyle = 'rgba(34,197,94,.14)'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#22c55e'; c.lineJoin = 'round'; c.stroke();
-    c.fillStyle = '#fff'; P.forEach(p => { c.beginPath(); c.arc(p[0], p[1], 6, 0, 7); c.fill(); });
+    if (!det.found) { S.tgt = null; return; }
+    const vw = v.videoWidth, vh = v.videoHeight, sc = Math.max(W / vw, H / vh), ox = (W - vw * sc) / 2, oy = (H - vh * sc) / 2;
+    S.tgt = det.pts.map(p => [p[0] * vw * sc + ox, p[1] * vh * sc + oy]);
+    if (!S.cur) { S.cur = S.tgt.map(p => p.slice()); S.born = performance.now(); }
+  }
+  function render(ov, t) {
+    const W = ov.width, H = ov.height, c = ov.getContext('2d'); c.clearRect(0, 0, W, H);
+    if (!S.tgt) { S.cur = null; S.fade = 0; return; }
+    const P = S.cur; S.tgt.forEach((q, i) => { P[i][0] += (q[0] - P[i][0]) * .28; P[i][1] += (q[1] - P[i][1]) * .28; });
+    const prog = Math.min(1, S.hold / HOLD_MS), lock = Math.min(1, (t - S.born) / 280), ease = 1 - Math.pow(1 - lock, 3);
+    const cx = P.reduce((a, p) => a + p[0], 0) / 4, cy = P.reduce((a, p) => a + p[1], 0) / 4;
+    const Q = P.map(p => [cx + (p[0] - cx) * (1.04 - .04 * ease), cy + (p[1] - cy) * (1.04 - .04 * ease)]);   // settles in from slightly larger
+    const rgb = prog > 0 ? '34,197,94' : '255,255,255', col = `rgb(${rgb})`;
+    const path = () => { c.beginPath(); Q.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); };
+    c.save(); c.globalAlpha = ease;
+    // dim everything outside the receipt
+    c.fillStyle = 'rgba(0,0,0,.38)'; c.beginPath(); c.rect(0, 0, W, H); Q.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fill('evenodd');
+    // soft tint + travelling light band inside the receipt
+    path(); c.fillStyle = `rgba(${rgb},.10)`; c.fill();
+    c.save(); path(); c.clip();
+    const minY = Math.min(...Q.map(p => p[1])), maxY = Math.max(...Q.map(p => p[1])), hh = maxY - minY, y = minY + ((t % 1800) / 1800) * (hh + 80) - 40;
+    const g = c.createLinearGradient(0, y - 40, 0, y + 40); g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(.5, `rgba(${rgb},.28)`); g.addColorStop(1, `rgba(${rgb},0)`);
+    c.fillStyle = g; c.fillRect(0, y - 40, W, 80); c.restore();
+    // glowing outline
+    c.lineJoin = 'round'; c.lineCap = 'round'; c.shadowColor = col; c.shadowBlur = 14;
+    path(); c.lineWidth = 2; c.strokeStyle = `rgba(${rgb},.55)`; c.stroke();
+    // corner brackets along the edges
+    c.lineWidth = 5; c.strokeStyle = col;
+    for (let i = 0; i < 4; i++) {
+      const a = Q[i], b = Q[(i + 1) % 4], d = Q[(i + 3) % 4], la = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ld = Math.hypot(d[0] - a[0], d[1] - a[1]) || 1, k = Math.min(34, la * .22, ld * .22);
+      c.beginPath(); c.moveTo(a[0] + (b[0] - a[0]) / la * k, a[1] + (b[1] - a[1]) / la * k); c.lineTo(a[0], a[1]); c.lineTo(a[0] + (d[0] - a[0]) / ld * k, a[1] + (d[1] - a[1]) / ld * k); c.stroke();
+    }
+    // auto-capture progress: green line drawn round the edge
+    if (prog > 0) {
+      let tot = 0; const seg = Q.map((p, i) => { const n = Q[(i + 1) % 4], l = Math.hypot(n[0] - p[0], n[1] - p[1]); tot += l; return l; });
+      let left = tot * prog; c.lineWidth = 5; c.strokeStyle = '#4ade80'; c.shadowColor = '#22c55e'; c.shadowBlur = 18; c.beginPath(); c.moveTo(Q[0][0], Q[0][1]);
+      for (let i = 0; i < 4 && left > 0; i++) { const n = Q[(i + 1) % 4], f = Math.min(1, left / seg[i]); c.lineTo(Q[i][0] + (n[0] - Q[i][0]) * f, Q[i][1] + (n[1] - Q[i][1]) * f); left -= seg[i]; }
+      c.stroke();
+    }
+    c.restore();
   }
   function shoot(v, auto) {
     if (!v.videoWidth || S.busy) return; S.busy = true;
     const raw = document.createElement('canvas'); raw.width = v.videoWidth; raw.height = v.videoHeight; raw.getContext('2d').drawImage(v, 0, 0);
+    try { navigator.vibrate && navigator.vibrate(18); } catch (e) { }
     const fl = root.querySelector('.cam-flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
     const fr = root.querySelector('#camFrame'); fr.classList.add('ok'); setTimeout(() => fr && fr.classList.remove('ok'), 450);
     const usePts = S.last && performance.now() - S.lastAt < 900 ? S.last : null;

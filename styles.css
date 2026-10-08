@@ -218,3 +218,27 @@ td .rth{width:30px;height:30px;border-radius:6px;margin-left:4px}
 #side .vtag{color:#fff}
 .authcard .vtag{padding:10px 0 0}
 .vtag .made{text-transform:none;letter-spacing:0;font-weight:500;opacity:.9}
+
+/* camera v3 — polished scanner look */
+.cam-frame{border-radius:18px;box-shadow:0 0 0 100vmax rgba(0,0,0,.5),inset 0 0 40px rgba(255,255,255,.05)}
+.cam-frame i{width:38px;height:38px;border:4px solid #fff;border-radius:0;filter:drop-shadow(0 0 6px rgba(255,255,255,.7));animation:cambreath 2.4s ease-in-out infinite}
+.cam-frame i.tl{border-top-left-radius:18px}.cam-frame i.tr{border-top-right-radius:18px}.cam-frame i.bl{border-bottom-left-radius:18px}.cam-frame i.br{border-bottom-right-radius:18px}
+@keyframes cambreath{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(.93);opacity:1}}
+.cam-frame.ok i{filter:drop-shadow(0 0 8px #22c55e)}
+.cam-frame::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px) 0 0/100% 28px;opacity:.5;-webkit-mask:radial-gradient(ellipse at center,#000 30%,transparent 80%);mask:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+.cam-line{height:56px;border-radius:0;left:0;right:0;background:linear-gradient(to bottom,rgba(223,10,30,0),rgba(223,10,30,.28));border-bottom:2px solid #ff4d5e;box-shadow:0 6px 18px 0 rgba(223,10,30,.55);animation:camscan 2.4s cubic-bezier(.45,0,.55,1) infinite alternate}
+@keyframes camscan{from{top:-56px}to{top:calc(100% - 58px)}}
+.cam-hint{flex:0 1 auto;margin:0 auto;padding:8px 16px;border-radius:999px;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);text-shadow:none;transition:background .25s,border-color .25s,color .25s}
+.cam-hint.ok{background:rgba(22,101,52,.65);border-color:rgba(74,222,128,.6);color:#dcfce7}
+.cam-hint.warn{background:rgba(120,53,15,.7);border-color:rgba(253,224,71,.5);color:#fef08a}
+.cam-chip{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .2s,color .2s}
+.cam-shutter{box-shadow:0 0 0 0 rgba(255,255,255,.45);animation:camready 2.2s ease-out infinite}
+@keyframes camready{0%{box-shadow:0 0 0 0 rgba(255,255,255,.4)}70%,100%{box-shadow:0 0 0 14px rgba(255,255,255,0)}}
+.cam-ring{filter:drop-shadow(0 0 6px #22c55e)}
+.cam-flash.go{animation:camflash .45s ease-out}
+.cam-frame.ok{animation:camsnap .45s ease-out}
+@keyframes camsnap{40%{transform:scale(.96)}}
+.cam-last{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15)}
+@media (prefers-reduced-motion:reduce){.cam-frame i,.cam-shutter{animation:none}}
+.cam-frame.det i,.cam-frame.det .cam-line,.cam-frame.det::before{animation:none;opacity:0}
+.cam-hint{max-width:calc(100% - 120px)}
