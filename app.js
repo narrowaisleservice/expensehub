@@ -111,3 +111,23 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) naviga
 
 // version tag (set in config.js)
 document.querySelectorAll('[data-ver]').forEach(el => { const c = window.EXPENSEHUB_CONFIG; el.innerHTML = 'Flexi Expenses ' + (c.version || '') + (c.author ? '<br><span class="made">Made by ' + c.author + '</span>' : ''); });
+
+/* ---------- "install to home screen" prompt (Android/desktop Chrome use the browser prompt; iPhone gets the steps) ---------- */
+(() => {
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const KEY = 'eh_install_hide', hidden = () => { try { return Date.now() < +localStorage.getItem(KEY); } catch (e) { return false; } };
+  const hide = days => { try { localStorage.setItem(KEY, Date.now() + days * 864e5); } catch (e) { } };
+  let evt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); evt = e; setTimeout(show, 4000); });
+  window.addEventListener('appinstalled', () => { hide(3650); const b = document.getElementById('installbar'); if (b) b.remove(); });
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  function show() {
+    if (standalone() || hidden() || document.getElementById('installbar') || !(typeof App !== 'undefined' && App.ws)) return;
+    const b = document.createElement('div'); b.id = 'installbar'; b.className = 'installbar';
+    b.innerHTML = `<img src="icon-192.png" alt=""><div><b>Add Flexi Expenses to your home screen</b><span>${evt ? 'Opens like a normal app and works offline.' : 'Tap <b>Share</b>, then <b>Add to Home Screen</b>.'}</span></div>${evt ? '<button class="btn sm" id="ib_go">Install</button>' : ''}<button class="ibx" id="ib_x" aria-label="Not now">×</button>`;
+    document.body.appendChild(b);
+    b.querySelector('#ib_x').onclick = () => { hide(14); b.remove(); };
+    const go = b.querySelector('#ib_go'); if (go) go.onclick = async () => { b.remove(); try { evt.prompt(); const r = await evt.userChoice; if (r.outcome !== 'accepted') hide(14); } catch (e) { } evt = null; };
+  }
+  if (ios) setTimeout(function wait() { (typeof App !== 'undefined' && App.ws) ? show() : setTimeout(wait, 1500); }, 6000);
+})();

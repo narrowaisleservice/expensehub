@@ -446,6 +446,10 @@ function bulkReadBack(f) {
   });
 }
 /* same merchant-ish + same amount + same date as something already entered? */
+/* the very same receipt file saved twice (by anyone you can see) */
+const dupReceipt = (hash, selfId) => hash ? (EX.rows || []).find(e => e.id !== selfId && e.receipt_hash === hash) || null : null;
+const dupLabel = d => (d.merchant || 'an expense') + ' on ' + dfmt(d.expense_date) + (d.user_id !== App.user.id ? ' (' + memberName(d.user_id) + ')' : '');
+const dropUpload = path => { try { sb.storage.from('exp-receipts').remove([path]); } catch (e) { } };
 function findDup(merchant, amount, date, selfId) {
   const a = Number(amount); if (!a || !date) return null;
   const first = m => String(typeof mkey === 'function' ? mkey(m) : m || '').split(' ')[0], f = first(merchant);
@@ -514,7 +518,7 @@ function drawBkSafe(force) {   // don't redraw under the user's cursor while the
 ACTIONS.bulkDrop = (t, ev) => { ev.preventDefault(); BK.rows = BK.rows.filter(r => r.id !== t.dataset.id); if (!BK.rows.length) return closeModal(); drawBk(); };
 ACTIONS.bulkSave = wrap(async () => {
   if (BK.busy) return toast('Still reading — wait for it to finish', 'err');
-  const left = []; let ok = 0;
+  const left = [], seen = new Map(); let ok = 0, skipped = 0;
   for (const r of BK.rows) {
     const amount = parseFloat(r.amount), offline = !navigator.onLine;
     if (offline && !(amount > 0 && (r.merchant || '').trim())) {      // photo only: queue it, it is read once back online
@@ -525,6 +529,9 @@ ACTIONS.bulkSave = wrap(async () => {
     const row = { kind: 'expense', merchant: r.merchant.trim(), expense_date: r.date || today(), amount, currency: r.currency, fx_rate: r.fx || 1, category_id: r.cat || null, payment_method: r.pay || 'personal', supplier_vat_no: r.svat || null, vat_amount: r.vat === '' ? null : parseFloat(r.vat), receipt_check: r.check, notes: '', billable: false, customer: null, miles: null, from_loc: null, to_loc: null, trip_id: null }, nid = uuid();
     try {
       const path = await uploadReceipt(r.file), hash = uploadReceipt.last?.hash || null;
+      const dr = dupReceipt(hash) || seen.get(hash);
+      if (dr) { dropUpload(path); r.msg = 'Already saved: ' + (dr.merchant ? dupLabel(dr) : 'earlier in this batch') + '.'; skipped++; continue; }
+      seen.set(hash, { merchant: row.merchant, expense_date: row.expense_date, user_id: App.user.id });
       await q(sb.from('exp_expenses').insert({ ...row, id: nid, workspace_id: App.ws.id, user_id: App.user.id, receipt_path: path, receipt_hash: hash })); learnMerchant(row.merchant, row.category_id, false);
       ok++;
     } catch (e) {
@@ -534,6 +541,7 @@ ACTIONS.bulkSave = wrap(async () => {
   }
   BK.rows = left;
   await OFF.refresh(); if (ok) toast(ok + (navigator.onLine ? ' expense(s) saved' : ' expense(s) saved on this device — they sync when you are online'));
+  if (skipped) toast(skipped + ' receipt(s) skipped — already saved', 'err');
   if (left.length) { toast(left.length + ' still need attention', 'err'); drawBk(); } else closeModal();
   rerender();
 });
@@ -565,7 +573,11 @@ ACTIONS.xSave = wrap(async () => {
   const btn = $('[data-act=xSave]'); btn.disabled = true; btn.textContent = 'Saving…';
   try {
     const payload = { ...base };
-    if (e.file) { e.receipt_path = await uploadReceipt(e.file); e.receipt_hash = uploadReceipt.last?.hash || null; }
+    if (e.file) {
+      e.receipt_path = await uploadReceipt(e.file); e.receipt_hash = uploadReceipt.last?.hash || null;
+      const dr = dupReceipt(e.receipt_hash, e.id);
+      if (dr && !(await confirmBox('This exact receipt is already saved: ' + dupLabel(dr) + '. Save it again anyway?', 'Save anyway'))) { dropUpload(e.receipt_path); e.receipt_path = null; e.receipt_hash = null; btn.disabled = false; btn.textContent = 'Save'; return; }
+    }
     payload.receipt_path = e.receipt_path || null; payload.receipt_hash = e.receipt_path ? e.receipt_hash || null : null;
     if (e.id) await q(sb.from('exp_expenses').update(payload).eq('id', e.id));
     else await q(sb.from('exp_expenses').insert({ ...payload, id: nid, workspace_id: App.ws.id, user_id: App.user.id }));
