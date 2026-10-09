@@ -3,6 +3,6 @@ window.EXPENSEHUB_CONFIG = {
   url: 'https://hkwcdpqpduptjwroawrw.supabase.co',
   key: 'sb_publishable_ym0_ostk5WkdHGhGEGSkXw_d1sHadPY',
   appName: 'Flexi Expenses',
-  version: 'V0.8.2 BETA',
+  version: 'V0.8.3 BETA',
   author: 'James Williams'
 };

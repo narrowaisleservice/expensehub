@@ -186,14 +186,16 @@ const Cam = (() => {
     };
     tick(); const spin = t => { if (!root) return; try { render(ov, t); } catch (e) { } raf = requestAnimationFrame(spin); }; raf = requestAnimationFrame(spin);
   }
-  const HOLD_MS = 900;
+  const HOLD_MS = 700;
   function analyse(det, sh) {
-    const now = performance.now(); S.det = det; S.sh = sh;
-    const dark = det.mean < 55, blurry = sh < 15, small = det.found && det.cover < .22;
-    if (det.found) { S.hist.push(det.pts); if (S.hist.length > 6) S.hist.shift(); S.lost = 0; if (det.pts) { S.last = det.pts; S.lastAt = now; } }
+    const now = performance.now();
+    if (!det.found && S.det && S.det.found && S.lost < 3) { S.lost++; return; }      // ignore a one-off missed detection so a tiny wobble doesn't restart the countdown
+    S.det = det; S.sh = sh;
+    const dark = det.mean < 55, blurry = sh < 12, small = det.found && det.cover < .22;
+    if (det.found) { S.hist.push(det.pts); if (S.hist.length > 4) S.hist.shift(); S.lost = 0; if (det.pts) { S.last = det.pts; S.lastAt = now; } }
     else { S.hist = []; S.lost++; S.hold = 0; if (S.lost > 4) S.armed = true; }
     if (S.firedPts && det.found && maxMove(det.pts, S.firedPts) > .12) S.armed = true;      // re-arm once the paper has moved on
-    const stable = det.found && S.hist.length >= 5 && S.hist.every(p => maxMove(p, S.hist[S.hist.length - 1]) < .02);
+    const stable = det.found && S.hist.length >= 4 && S.hist.every(p => maxMove(p, S.hist[S.hist.length - 1]) < .04);   // ~4% of the picture: normal hand shake is fine
     if (dark) hint('Too dark — turn on the light or move to a brighter spot', 'warn');
     else if (!det.found) { hint(S.long && parts.length ? 'Line up the next part of the receipt' : opts.multi && shots.length ? shots.length + ' captured — next receipt, or tap Done' : 'Fit the whole receipt inside the frame'); }
     else if (small) hint('Move closer', 'warn');
@@ -201,13 +203,14 @@ const Cam = (() => {
     else if (S.auto && S.armed) hint(stable ? 'Hold still…' : 'Receipt found', 'ok');
     else hint(S.auto ? 'Move to the next receipt' : 'Receipt found — tap the button', 'ok');
     const tb = root.querySelector('#camTorch'); if (tb) tb.classList.toggle('pulse', dark && !torch);
-    const good = stable && !dark && !small && sh >= 15;
-    if (S.auto && S.armed && good) { S.hold += 120; if (S.hold >= HOLD_MS) { S.hold = 0; S.armed = false; S.firedPts = det.pts; shoot(root.querySelector('video'), true); } } else S.hold = Math.max(0, S.hold - 240);
+    const good = stable && !dark && !small && sh >= 12;
+    if (S.auto && S.armed && good) { S.hold += 120; if (S.hold >= HOLD_MS) { S.hold = 0; S.armed = false; S.firedPts = det.pts; shoot(root.querySelector('video'), true); } } else S.hold = Math.max(0, S.hold - 60);   // lose progress slowly, not all at once
   }
   const maxMove = (a, b) => Math.max(...a.map((p, i) => Math.hypot(p[0] - b[i][0], p[1] - b[i][1])));
   /* the outline is eased towards each new detection and painted every frame, so it glides instead of jumping */
   function aim(ov, v, det, frame) {
     const W = ov.clientWidth, H = ov.clientHeight; if (ov.width !== W || ov.height !== H) { ov.width = W; ov.height = H; }
+    if (!det.found && S.lost > 0 && S.lost < 3 && S.tgt) return;
     frame.classList.toggle('det', !!det.found);
     if (!det.found) { S.tgt = null; return; }
     const vw = v.videoWidth, vh = v.videoHeight, sc = Math.max(W / vw, H / vh), ox = (W - vw * sc) / 2, oy = (H - vh * sc) / 2;
